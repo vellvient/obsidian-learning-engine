@@ -30,6 +30,10 @@ A second vault built from a completely different source type: the exam's officia
 specification PDF plus its two accompanying "Notes on..." documents.
 
 - **Scale:** ~91 nodes, 321 sub-skills, 117 edges, **315 official past-paper questions** (2017–2023 + specimen) tagged to 74 nodes, plus 58 supplementary hand-crafted questions.
+- **Unified result:** the 91 TMUA objectives were mapped onto 196 canonical
+  A-Level maths nodes. Ten genuinely distinct logic/proof skills became new
+  nodes and 13 hard bridge edges joined them to the existing proof graph. The
+  315 official questions then generated topical practice on 155 canonical nodes.
 - **Lessons that generalize:**
   - A spec PDF is the cleanest possible Phase-1 source — the assessment points *are*
     the skill list; no scraping, no inference.

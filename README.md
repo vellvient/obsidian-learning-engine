@@ -26,6 +26,9 @@ human or AI agent — can replicate it for any subject.
 6. **Past-paper pipeline** (optional) — turn a folder of exam PDFs into a topic-tagged
    question bank: per-node practice notes with rendered question images, folded answers,
    and printable booklets. Bring your own PDFs; the pipeline is subject-agnostic.
+7. **Course overlays** — map several syllabuses or admission tests onto one canonical
+   graph, so shared skills keep one mastery/FSRS state while course-specific skills
+   extend the DAG without duplication.
 
 ## Quickstart (5 minutes)
 
@@ -72,7 +75,10 @@ vault/           the template vault — open this in Obsidian; scripts live insi
 automation/      optional hourly SRS watcher + scheduler setup
 ```
 
-Start with `docs/01-architecture.md`, or just hand `vault/AGENTS.md` to your AI agent.
+Start with `docs/01-architecture.md`, then use
+[`docs/09-course-overlays-and-learning-guide.md`](docs/09-course-overlays-and-learning-guide.md)
+for the actual daily loop and multi-course design. You can also hand `vault/AGENTS.md`
+to your AI agent.
 Ideas on the roadmap (and honest analyses of rejected ones, like two-way Anki sync):
 [FUTURE_IMPROVEMENTS.md](FUTURE_IMPROVEMENTS.md).
 

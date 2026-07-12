@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "course": "ADMISSION_TEST",
+  "rules": {
+    "shared": "Reuse canonical mastery nodes instead of copying concepts.",
+    "new": "Allocate collision-free IDs only for genuinely new skills.",
+    "grading": "Grade only the canonical node selected for an attempt."
+  },
+  "new_nodes": {
+    "source_logic_1": 1001
+  },
+  "mappings": {
+    "source_algebra_1": [7, 10],
+    "source_quadratics": [11, 12, 15],
+    "source_logic_1": [1001]
+  }
+}
