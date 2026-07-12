@@ -12,9 +12,15 @@ python extract.py --batches                                       # bundle for L
 python process_batches.py --limit 5                               # pilot wave
 python process_batches.py --workers 4                             # the rest
 python merge_bank.py                                              # -> papers/question_bank.json
-python render_questions.py                                        # PNG crops
+python render_questions.py                                        # question PNGs + mark-scheme crops
+python latexify_answers.py --pilot                                # optional: LaTeX finals (then run all)
 python gen_practice.py                                            # notes + booklets + links
 ```
+
+Booklets place each question's **mark-scheme crop directly after the question**
+(same page when it fits); practice notes fold a LaTeX final-answer line + the MS
+crop image + a link to the original MS PDF. Serve interactively with
+`python ../../quiz.py` from the vault root.
 
 ## Plugging in your LLM
 

@@ -73,6 +73,8 @@ automation/      optional hourly SRS watcher + scheduler setup
 ```
 
 Start with `docs/01-architecture.md`, or just hand `vault/AGENTS.md` to your AI agent.
+Ideas on the roadmap (and honest analyses of rejected ones, like two-way Anki sync):
+[FUTURE_IMPROVEMENTS.md](FUTURE_IMPROVEMENTS.md).
 
 ## Design lineage & attribution
 

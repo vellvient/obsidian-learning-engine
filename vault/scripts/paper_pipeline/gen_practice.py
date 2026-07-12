@@ -28,10 +28,7 @@ import sys
 import textwrap
 from pathlib import Path
 
-try:
-    import fitz  # PyMuPDF
-except ImportError:
-    fitz = None  # pip install pymupdf (only needed when actually processing PDFs)
+import fitz  # PyMuPDF
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(errors="replace")
@@ -94,6 +91,26 @@ def renders_of(entry_id: str) -> list[Path]:
                   key=lambda p: int(p.stem.rsplit("_p", 1)[1]))
 
 
+def ms_renders_of(entry_id: str) -> list[Path]:
+    m = ID_RE.match(entry_id)
+    if not m:
+        return []
+    return sorted(RENDERS.glob(f"{m.group(1)}_ms_q{m.group(2)}_p*.png"),
+                  key=lambda p: int(p.stem.rsplit("_p", 1)[1]))
+
+
+_tex_cache: dict[str, list[str]] | None = None
+
+
+def tex_finals(entry_id: str) -> list[str] | None:
+    """LaTeX-converted final_answers from papers/answers_tex.json (if present)."""
+    global _tex_cache
+    if _tex_cache is None:
+        f = VAULT / "papers" / "answers_tex.json"
+        _tex_cache = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+    return _tex_cache.get(entry_id)
+
+
 def sort_key(e: dict):
     return (DIFF_RANK.get(e.get("difficulty"), 1), e.get("marks") or 0)
 
@@ -138,11 +155,16 @@ def build_note(num: int, name: str, entries: list[dict]) -> str:
             lines.append("```")
         lines.append("")
         lines.append("> [!success]- Answer & markscheme")
-        finals = [a for a in e.get("final_answers") or [] if a]
+        finals = tex_finals(e["id"]) or [a for a in e.get("final_answers") or [] if a]
+        finals = [a for a in finals if a]
         if finals:
             lines.append("> **Final:** " + " · ".join(finals))
-        for pt in e.get("markscheme_points") or []:
-            lines.append(f"> - {pt}")
+        ms_pngs = ms_renders_of(e["id"])
+        if ms_pngs:
+            lines.extend(f"> ![[papers/renders/{p.name}]]" for p in ms_pngs)
+        else:  # no MS crop (pre-2017 layout etc.) — fall back to extracted points
+            for pt in e.get("markscheme_points") or []:
+                lines.append(f"> - {pt}")
         uri = ms_pdf_uri(ID_RE.match(e["id"]).group(1))
         if uri:
             lines.append(f"> [Original MS PDF]({uri})")
@@ -153,44 +175,77 @@ def build_note(num: int, name: str, entries: list[dict]) -> str:
 # ---------------------------------------------------------------- booklet PDF
 
 def build_booklet(num: int, name: str, entries: list[dict], out: Path):
+    """Question followed immediately by its mark-scheme crop — same page when it
+    fits, overflow to the next page. No separate answers section."""
     a4 = fitz.paper_rect("a4")
+    MARGIN, TOP, BOTTOM = 36, 45, 40
     doc = fitz.open()
     page = doc.new_page(width=a4.width, height=a4.height)
     page.insert_text((72, 120), pdf_safe(f"{num} - {name}"), fontsize=18)
     page.insert_text((72, 145), f"{len(entries)} past-paper questions, easy -> hard. "
-                                f"Answers at the back.", fontsize=11)
+                                f"Each question is followed by its markscheme.", fontsize=11)
     page.insert_text((72, 165), f"Generated {dt.date.today().isoformat()} by gen_practice.py",
                      fontsize=9, color=(0.5, 0.5, 0.5))
+    y = a4.height  # force a new page for Q1
+
+    def new_page(header: str | None = None):
+        nonlocal page, y
+        page = doc.new_page(width=a4.width, height=a4.height)
+        y = TOP
+        if header:
+            page.insert_text((MARGIN, 30), pdf_safe(header), fontsize=9,
+                             color=(0.35, 0.35, 0.35))
+
+    def place_image(png: Path, header: str, max_h_frac: float = 1.0):
+        """Place an image at the cursor, new page if it doesn't fit."""
+        nonlocal y
+        pix = fitz.Pixmap(str(png))
+        scale = min((a4.width - 2 * MARGIN) / pix.width, 1.0)
+        w, h = pix.width * scale, pix.height * scale
+        max_h = (a4.height - TOP - BOTTOM) * max_h_frac
+        if h > max_h:  # very tall crop: shrink to page height
+            s2 = max_h / h
+            w, h = w * s2, h * s2
+        if y + h > a4.height - BOTTOM:
+            new_page(header + "  (cont.)")
+        page.insert_image(fitz.Rect(MARGIN, y, MARGIN + w, y + h), pixmap=pix)
+        y += h + 8
+
+    def emit_text(lines: list[tuple[str, float, float]], header: str):
+        nonlocal y
+        for line, size, indent in lines:
+            if y > a4.height - BOTTOM:
+                new_page(header + "  (cont.)")
+            page.insert_text((MARGIN + 4 + indent, y), pdf_safe(line), fontsize=size)
+            y += size * 1.45
+
     for i, e in enumerate(entries, 1):
         header = pdf_safe(f"Q{i}  |  {e['id']}  |  {e['marks']} marks  |  {e.get('difficulty', '?')}")
+        new_page(header)  # every question starts on a fresh page
         for png in renders_of(e["id"]):
-            page = doc.new_page(width=a4.width, height=a4.height)
-            page.insert_text((36, 30), header, fontsize=9, color=(0.35, 0.35, 0.35))
-            pix = fitz.Pixmap(str(png))
-            scale = min((a4.width - 72) / pix.width, (a4.height - 90) / pix.height)
-            w, h = pix.width * scale, pix.height * scale
-            page.insert_image(fitz.Rect(36, 45, 36 + w, 45 + h), pixmap=pix)
-    # answers section: manual line layout (insert_textbox clips on overflow)
-    y, page = None, None
-    def emit(line: str, size: float = 9.0, indent: float = 0):
-        nonlocal y, page
-        if page is None or y > a4.height - 50:
-            page = doc.new_page(width=a4.width, height=a4.height)
-            y = 60
-        page.insert_text((40 + indent, y), pdf_safe(line), fontsize=size)
-        y += size * 1.45
-    emit("Answers & markschemes", 14)
-    emit("", 9)
-    for i, e in enumerate(entries, 1):
-        emit(f"Q{i}  ({e['id']}, {e['marks']} marks)", 10)
-        finals = [a for a in e.get("final_answers") or [] if a]
-        if finals:
-            for ln in textwrap.wrap("Final: " + " ; ".join(finals), 100):
-                emit(ln, 9, 12)
-        for pt in e.get("markscheme_points") or []:
-            for j, ln in enumerate(textwrap.wrap(pt, 96)):
-                emit(("- " if j == 0 else "  ") + ln, 9, 18)
-        emit("", 9)
+            place_image(png, header)
+        # answer immediately below (same page when it fits)
+        if y + 24 > a4.height - BOTTOM:
+            new_page(header + "  (answer)")
+        page.draw_line(fitz.Point(MARGIN, y + 2), fitz.Point(a4.width - MARGIN, y + 2),
+                       color=(0.6, 0.6, 0.6), width=0.6)
+        page.insert_text((MARGIN, y + 16), "Answer / markscheme", fontsize=10,
+                         color=(0.2, 0.45, 0.2))
+        y += 26
+        ms_pngs = ms_renders_of(e["id"])
+        if ms_pngs:
+            for png in ms_pngs:
+                place_image(png, header)
+        else:  # no MS crop — text fallback for this question only
+            lines: list[tuple[str, float, float]] = []
+            finals = [a for a in e.get("final_answers") or [] if a]
+            if finals:
+                for ln in textwrap.wrap("Final: " + " ; ".join(finals), 100):
+                    lines.append((ln, 9, 12))
+            for pt in e.get("markscheme_points") or []:
+                for j, ln in enumerate(textwrap.wrap(pt, 96)):
+                    lines.append((("- " if j == 0 else "  ") + ln, 9, 18))
+            emit_text(lines, header)
     doc.save(out, deflate=True)
     doc.close()
 

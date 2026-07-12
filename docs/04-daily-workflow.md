@@ -24,6 +24,20 @@ matched to today's picks.
    Obsidian as you verify each one.
 4. **5–10 min micro-drills** — the suggested `micro_trainer/train.py` commands.
 
+## Practice sessions — quiz.py
+
+When a study block is past-paper practice rather than new learning:
+
+```bash
+python quiz.py                    # 5 questions from flow-zone / due nodes
+python quiz.py --node 413 --count 10 --difficulty easy
+```
+
+It opens each question render, waits while you attempt on paper, reveals the
+mark-scheme crop + final answer, and records your self-grade — correct grades the
+node's due FSRS subskills Good; wrong logs the miss and grades Again
+(relearning-lock). Served questions never repeat (`papers/quiz_log.json`).
+
 ## During study — capture errors in 5 seconds
 
 The moment you get something wrong, log it and move on. **No analysis mid-session** —

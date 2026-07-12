@@ -40,8 +40,11 @@ python scripts/paper_pipeline/process_batches.py --workers 4  # the rest, parall
 # 4. Merge + validate the bank (standalone re-run any time)
 python scripts/paper_pipeline/merge_bank.py     # -> papers/question_bank.json
 
-# 5. Render full-question PNG crops from the source PDFs (idempotent)
+# 5. Render question PNGs AND per-question mark-scheme crops (idempotent)
 python scripts/paper_pipeline/render_questions.py
+
+# 5b. Optional: rewrite final answers as inline LaTeX for the notes
+python scripts/paper_pipeline/latexify_answers.py --pilot   # eyeball, then run all
 
 # 6. Generate per-node practice notes + booklets + note links (idempotent)
 python scripts/paper_pipeline/gen_practice.py
@@ -68,15 +71,29 @@ topical: questions can be served per graph node, filtered by flow zone or FSRS-d
 
 - **`practice/{num} - Practice.md`** — auto-generated (never hand-edit): questions as
   embedded PNG renders sorted easy→hard, each with a folded `> [!success]-` answer
-  callout (final answers + mark-scheme points + a link to the original MS PDF for
-  when extracted text isn't enough).
-- **`papers/booklets/{num} - Booklet.pdf`** — printable: one question per page,
-  answers section at the back.
+  callout: a LaTeX final-answer line (Obsidian renders MathJax), the **cropped
+  mark-scheme image** (authoritative formatting straight from the MS PDF), and a
+  link to the original MS PDF.
+- **`papers/booklets/{num} - Booklet.pdf`** — printable: each question followed
+  immediately by its mark-scheme crop, on the same page when it fits — no cycling
+  between a questions section and an answers section.
 - An idempotent `<!-- auto:practice-link -->` block inserted into the node's note.
 - `study_today.py` marks picks that have practice material with `p` and lists them.
 
-The practice loop: attempt → self-mark against the folded answer → miss ⇒
-`log_error.py <node> "..." --again` → grade FSRS.
+**Design note (learned from use):** extracted mark-scheme *text* is inherently lossy
+(math scrambling, glyph encodings) — cropping the actual MS PDF region per question
+(`render_questions.py` does this via table-row bounding boxes) gives pixel-perfect
+answers for free. Text answers remain only as the fallback for papers whose mark
+schemes don't parse as tables.
+
+## Serving: quiz.py
+
+`python quiz.py` (vault root) closes the loop interactively: picks questions from
+flow-zone/FSRS-due nodes (`--node N`, `--count`, `--difficulty`, `--due-only`),
+opens the question render, waits while you attempt on paper, reveals the MS crop +
+final answer, then records your self-grade — correct grades the node's due
+subskills Good; wrong logs to the error log and grades Again (relearning-lock);
+everything lands in `papers/quiz_log.json` so questions never repeat.
 
 ## Driving the tagging model
 

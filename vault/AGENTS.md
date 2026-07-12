@@ -92,10 +92,15 @@ Then delete the demo notes (1–15, Expressions.md, Equations.md), reset
 
 With your own PDFs: see `../docs/05-paper-pipeline.md`. Pipeline order: `extract.py
 --src ... --years ...` → `extract.py --batches` → `process_batches.py` →
-`merge_bank.py` → `render_questions.py` → `gen_practice.py`. Per node it generates
-`practice/{num} - Practice.md` + `papers/booklets/{num} - Booklet.pdf` + a marker
-block in the note; `study_today.py` marks such picks with `p`. Bank/renders/booklets
-are gitignored (copyrighted source material stays local).
+`merge_bank.py` → `render_questions.py` (question PNGs **and** per-question
+mark-scheme crops) → optional `latexify_answers.py` (LaTeX finals) →
+`gen_practice.py`. Per node it generates `practice/{num} - Practice.md` (LaTeX
+final line + MS crop image in a folded callout) + `papers/booklets/{num} -
+Booklet.pdf` (each question followed by its MS crop, same page when it fits) + a
+marker block in the note; `study_today.py` marks such picks with `p`. Serve
+interactively with `python quiz.py` (flow-zone/due selection, self-grades wired to
+FSRS, misses to the error log). Bank/renders/booklets are gitignored (copyrighted
+source material stays local).
 
 ## Skills available to agents
 
