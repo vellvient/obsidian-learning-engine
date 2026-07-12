@@ -19,8 +19,10 @@ The original vault this repo was extracted from.
   should I do today" entirely; the FSRS reseed incident (see engine internals) proved
   the value of dual bookkeeping (legacy ladder + FSRS) — the bug was caught because
   the two systems disagreed.
-- **Extension:** a past-paper question bank (2,000+ questions, ~98% auto-tagged to
-  graph nodes by a budget model) generating per-node practice notes and booklets.
+- **Extension:** a 4,797-question CIE 9709/9231 bank (~98% auto-tagged to graph
+  nodes by a budget model), with 4,753 original mark-scheme crops, LaTeX final
+  answers, 414 per-node practice notes/booklets, and an FSRS/error-log-aware
+  interactive serving loop.
 
 ## Case study 2 — TMUA admission test (spec-PDF source)
 
@@ -34,6 +36,11 @@ specification PDF plus its two accompanying "Notes on..." documents.
   - Admission-test graphs are small (60–120 nodes) and benefit from a dedicated
     logic/reasoning domain when the exam tests it.
   - A question bank (Phase 7) is high-value here. Preserve original question and worked-solution crops, use extracted text only for topic tagging, and serve questions by flow zone; hand-crafted questions remain supplementary.
+  - When an admission test overlaps a larger subject graph, use a **course
+    overlay**, not a second copy of every concept. Shared maths skills should have
+    one node and one mastery state; course tags select TMUA/9709/9231 views, while
+    TMUA-only logic, proof, and test-strategy nodes extend the shared DAG. Import
+    question tags through an explicit old-id → canonical-id map.
   - Validation (cycle check, dangling ids, transitive reduction) ran as an automatic
     gate after each edge batch — the graph shipped clean on the first audit.
 
