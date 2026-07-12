@@ -5,7 +5,7 @@ Picks questions tagged to nodes you should study right now (flow zone + FSRS-due
 opens the question render, lets you attempt on paper, reveals the mark-scheme
 crop, and records your self-grade:
 
-  wrong    -> log_error.py <node> "quiz miss ..." --again   (FSRS Again + lock)
+  wrong    -> log_error.py <node> "quiz miss ..." + direct FSRS Again (relearning-lock)
   correct  -> grades that node's DUE FSRS subskills Good (cap 3, due-only)
   partial  -> logged only (no FSRS write)
 
