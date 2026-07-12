@@ -9,7 +9,7 @@ Two tracks: **(A)** try the demo in 5 minutes, **(B)** build a vault for your ow
 Requirements: Python 3.10+, Obsidian (free), git.
 
 ```bash
-git clone https://github.com/Aifven/obsidian-learning-engine
+git clone https://github.com/vellvient/obsidian-learning-engine
 cd obsidian-learning-engine/vault
 python morning.py
 ```

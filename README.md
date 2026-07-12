@@ -30,7 +30,7 @@ human or AI agent — can replicate it for any subject.
 ## Quickstart (5 minutes)
 
 ```bash
-git clone https://github.com/Aifven/obsidian-learning-engine
+git clone https://github.com/vellvient/obsidian-learning-engine
 cd obsidian-learning-engine/vault
 python morning.py        # ranked study plan from the demo data
 python study_today.py    # the flow-zone x unlock-leverage ranker on its own
