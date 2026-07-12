@@ -1,8 +1,8 @@
 # TMUA Vault Case Study — Building from exam specification PDF
 
-**Vault**: a sibling vault built alongside the maths reference vault  
-**Subject**: Test of Mathematics for University Admission (TMUA)  
-**Size**: 91 skill nodes, 321 subskills, 117 prerequisite edges, 58 practice questions  
+**Vault**: a sibling vault built alongside the maths reference vault
+**Subject**: Test of Mathematics for University Admission (TMUA)
+**Size**: 91 skill nodes, 321 subskills, 117 prerequisite edges, 315 official past-paper questions + 58 supplementary questions
 **Source**: UAT-UK official specification PDF + Notes on Mathematics (PDF) + Notes on Logic and Proof (PDF)
 
 ---
@@ -16,7 +16,7 @@
 | IDs | 4-digit DrFrost codes | Sequential 1-136 |
 | Edge mining | Batch AI analysis (subagents) | Manual from spec reading (spec explicitly states dependencies) |
 | Paper split | N/A | Paper 1 (application) vs Paper 2 (reasoning) |
-| Question bank | Not generated | 58 MCQ tied to skill IDs |
+| Question bank | CIE topical corpus | 315 official MCQ tagged to 74 skill IDs + 58 supplementary MCQ |
 
 ## Phase 1 — Extract from spec PDF
 
@@ -74,7 +74,16 @@ content is flatter (many nodes share few common prerequisites).
 No FSRS was ported — TMUA is test-prep with a defined exam date, not long-term
 knowledge building. FSRS can be added later if desired.
 
-## Phase 7 — Question bank
+## Phase 7 — Official past-paper corpus and supplementary bank
+
+The completed serving layer has two complementary sources:
+
+1. **Official corpus (primary):** 315 answer-keyed questions from 2017–2023 Paper 1/2 plus the early specimen. Questions are rendered as original PDF crops; each folded answer embeds the authoritative worked-solution crop. A cheap-model tagging pass mapped 315/315 questions to 74 graph nodes. `tmua_quiz.py` serves unseen questions by paper or node and logs self-grades.
+2. **Hand-crafted bank (supplementary):** `scripts/tmua_questions.py` provides 58 additional TMUA-style MCQs where official coverage is thin.
+
+Reusable pattern: keep copyrighted PDFs and generated crops out of git; publish only pipeline code. For broken PDF text layers, tag from worked-solution text while serving the original page crop. Exclude a sitting rather than trusting unreadable extraction unless OCR quality is validated.
+
+## Legacy Phase 7 notes
 
 `scripts/tmua_questions.py` — 58 TMUA-style MCQs (5 options, no calculator).
 Each question carries a `skills[]` field linking it to 1-3 skill IDs.

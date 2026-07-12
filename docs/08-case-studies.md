@@ -27,16 +27,13 @@ The original vault this repo was extracted from.
 A second vault built from a completely different source type: the exam's official
 specification PDF plus its two accompanying "Notes on..." documents.
 
-- **Scale:** ~91 nodes, 321 sub-skills, 117 edges, 58 hand-crafted practice
-  questions across 12 domains.
+- **Scale:** ~91 nodes, 321 sub-skills, 117 edges, **315 official past-paper questions** (2017–2023 + specimen) tagged to 74 nodes, plus 58 supplementary hand-crafted questions.
 - **Lessons that generalize:**
   - A spec PDF is the cleanest possible Phase-1 source — the assessment points *are*
     the skill list; no scraping, no inference.
   - Admission-test graphs are small (60–120 nodes) and benefit from a dedicated
     logic/reasoning domain when the exam tests it.
-  - A question bank (Phase 7) is high-value here because past papers are scarce and
-    the format is distinctive — questions were hand-written to match the exam style
-    and tagged to skill ids, making them servable by flow zone.
+  - A question bank (Phase 7) is high-value here. Preserve original question and worked-solution crops, use extracted text only for topic tagging, and serve questions by flow zone; hand-crafted questions remain supplementary.
   - Validation (cycle check, dangling ids, transitive reduction) ran as an automatic
     gate after each edge batch — the graph shipped clean on the first audit.
 
@@ -74,3 +71,18 @@ mechanics FIRe's chain-weighting draws on).
 5. Dangling endpoints and orphan notes — list them; orphans <5%.
 6. Compare distributions (prereqs/node, root %, hard:soft) against Marble's stats.
 7. Spot-check 20 random HARD edges by hand — ≥18 defensible or re-mine that domain.
+
+### Reproduce the TMUA corpus
+
+The template ships `vault/scripts/tmua_pipeline.py` and `vault/tmua_quiz.py`. Supply your own legally obtained official PDFs; no exam content is included:
+
+```powershell
+$env:TMUA_PDF_DIR = "C:\path\to\TMUA_PDFs"
+cd vault
+python scripts/tmua_pipeline.py --extract --render --batches
+# Process .engine/paper_mining/batch_*.json with your chosen agent CLI.
+python scripts/tmua_pipeline.py --merge --practice
+python tmua_quiz.py --paper 2 --count 10
+```
+
+Expected filenames are `{year}_TMUA_Paper1.pdf`, `{year}_TMUA_Paper2.pdf`, a combined `{year}_TMUA_AnswerKey.pdf`, and matching `*_WorkedAnswers.pdf`. The extractor also accepts the early-specimen naming variant used by UAT-UK archives.
