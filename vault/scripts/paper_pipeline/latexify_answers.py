@@ -3,8 +3,7 @@
 
 Collects the distinct final_answers strings from papers/question_bank.json that
 look like math but carry no $...$ markup, chunks them, and drives an agent CLI
-(any agent CLI; the reference setup used `hermes -z` with a DeepSeek-class
-model - swap the invocation in run_chunk(), see this directory's README) to rewrite each
+(any agent CLI; the reference setup used `hermes -z` with a DeepSeek-class`r`nmodel - swap the invocation in run_chunk(), see this directory's README) to rewrite each
 as inline LaTeX. Results are merged into papers/answers_tex.json keyed by
 entry id — the bank itself is never modified, so merge_bank.py reruns are safe.
 
@@ -16,6 +15,7 @@ Usage (from vault root):
 from __future__ import annotations
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -76,10 +76,19 @@ def run_chunk(cid: str) -> bool:
     expected = json.loads((WORK / f"{cid}.json").read_text(encoding="utf-8"))
     for attempt in (1, 2):
         t0 = time.time()
+        proc = subprocess.Popen([exe, "-z", prompt], cwd=VAULT,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         try:
-            subprocess.run([exe, "-z", prompt], cwd=VAULT, timeout=TIMEOUT,
-                           capture_output=True)
+            proc.communicate(timeout=TIMEOUT)
         except subprocess.TimeoutExpired:
+            # On Windows, killing only hermes.exe leaves its Python child alive,
+            # consuming quota and racing the retry. Kill the whole tree.
+            if os.name == "nt":
+                subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                               capture_output=True)
+            else:
+                proc.kill()
+            proc.communicate()
             print(f"  {cid}: attempt {attempt} timed out")
             continue
         rf = WORK / f"{cid}_result.json"
