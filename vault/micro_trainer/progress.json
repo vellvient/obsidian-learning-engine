@@ -1,0 +1,22 @@
+{
+  "diff_squares": {
+    "name": "Difference of Squares",
+    "domain": "Algebraic Manipulation",
+    "sessions": 2,
+    "total_correct": 14,
+    "total_wrong": 4,
+    "best_streak": 6,
+    "fastest": 3.2,
+    "mastery": 62.0
+  },
+  "exponent_rules": {
+    "name": "Exponent Rules",
+    "domain": "Algebraic Manipulation",
+    "sessions": 1,
+    "total_correct": 5,
+    "total_wrong": 3,
+    "best_streak": 3,
+    "fastest": 5.8,
+    "mastery": 41.0
+  }
+}

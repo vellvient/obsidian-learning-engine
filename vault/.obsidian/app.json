@@ -1,0 +1,8 @@
+{
+  "baseTheme": "obsidian",
+  "alwaysUpdateLinks": true,
+  "newLinkFormat": "shortest",
+  "showFrontmatter": true,
+  "livePreview": true,
+  "useMarkdownLinks": true
+}

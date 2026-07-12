@@ -1,0 +1,422 @@
+{
+  "last_commit": null,
+  "reviews": {
+    "6 - solving-one-step-equations.md:6a: Solve x + a = b.": {
+      "file": "6 - solving-one-step-equations.md",
+      "skill": "6a: Solve x + a = b.",
+      "ticked_at": "2026-07-01T09:00:00.000000",
+      "review_stages": [
+        {
+          "due": "2026-07-02T09:00:00.000000",
+          "stage": 1
+        },
+        {
+          "due": "2026-07-04T09:00:00.000000",
+          "stage": 2
+        },
+        {
+          "due": "2026-07-08T09:00:00.000000",
+          "stage": 3
+        },
+        {
+          "due": "2026-07-15T09:00:00.000000",
+          "stage": 4
+        },
+        {
+          "due": "2026-07-31T09:00:00.000000",
+          "stage": 5
+        }
+      ],
+      "fsrs": {
+        "state": 2,
+        "stability": 3.0,
+        "difficulty": 4.5,
+        "due": "2026-07-05T09:00:00.000000+00:00",
+        "last_review": "2026-07-02T09:00:00.000000+00:00",
+        "history": [
+          {
+            "rating": 3,
+            "at": "2026-07-02T09:00:00.000000+00:00",
+            "iv": 3
+          }
+        ]
+      }
+    },
+    "6 - solving-one-step-equations.md:6b: Solve ax = b.": {
+      "file": "6 - solving-one-step-equations.md",
+      "skill": "6b: Solve ax = b.",
+      "ticked_at": "2026-07-01T09:00:00.000000",
+      "review_stages": [
+        {
+          "due": "2026-07-02T09:00:00.000000",
+          "stage": 1
+        },
+        {
+          "due": "2026-07-04T09:00:00.000000",
+          "stage": 2
+        },
+        {
+          "due": "2026-07-08T09:00:00.000000",
+          "stage": 3
+        },
+        {
+          "due": "2026-07-15T09:00:00.000000",
+          "stage": 4
+        },
+        {
+          "due": "2026-07-31T09:00:00.000000",
+          "stage": 5
+        }
+      ],
+      "fsrs": {
+        "state": 2,
+        "stability": 3.0,
+        "difficulty": 4.5,
+        "due": "2026-07-05T09:00:00.000000+00:00",
+        "last_review": "2026-07-02T09:00:00.000000+00:00",
+        "history": [
+          {
+            "rating": 3,
+            "at": "2026-07-02T09:00:00.000000+00:00",
+            "iv": 3
+          }
+        ]
+      }
+    },
+    "7 - solving-two-step-equations.md:7a: Solve ax + b = c.": {
+      "file": "7 - solving-two-step-equations.md",
+      "skill": "7a: Solve ax + b = c.",
+      "ticked_at": "2026-07-01T09:00:00.000000",
+      "review_stages": [
+        {
+          "due": "2026-07-02T09:00:00.000000",
+          "stage": 1
+        },
+        {
+          "due": "2026-07-04T09:00:00.000000",
+          "stage": 2
+        },
+        {
+          "due": "2026-07-08T09:00:00.000000",
+          "stage": 3
+        },
+        {
+          "due": "2026-07-15T09:00:00.000000",
+          "stage": 4
+        },
+        {
+          "due": "2026-07-31T09:00:00.000000",
+          "stage": 5
+        }
+      ],
+      "fsrs": {
+        "state": 2,
+        "stability": 27.099333202466294,
+        "difficulty": 4.490728369296838,
+        "due": "2026-07-25T06:02:34.938562+00:00",
+        "last_review": "2026-07-12T06:02:34.938562+00:00",
+        "history": [
+          {
+            "rating": 3,
+            "at": "2026-07-02T09:00:00.000000+00:00",
+            "iv": 3
+          },
+          {
+            "rating": 3,
+            "at": "2026-07-12T06:02:34.938562+00:00",
+            "iv": 13
+          }
+        ]
+      }
+    },
+    "7 - solving-two-step-equations.md:7b: Solve equations with the unknown on both sides.": {
+      "file": "7 - solving-two-step-equations.md",
+      "skill": "7b: Solve equations with the unknown on both sides.",
+      "ticked_at": "2026-07-01T09:00:00.000000",
+      "review_stages": [
+        {
+          "due": "2026-07-02T09:00:00.000000",
+          "stage": 1
+        },
+        {
+          "due": "2026-07-04T09:00:00.000000",
+          "stage": 2
+        },
+        {
+          "due": "2026-07-08T09:00:00.000000",
+          "stage": 3
+        },
+        {
+          "due": "2026-07-15T09:00:00.000000",
+          "stage": 4
+        },
+        {
+          "due": "2026-07-31T09:00:00.000000",
+          "stage": 5
+        }
+      ],
+      "fsrs": {
+        "state": 2,
+        "stability": 3.0,
+        "difficulty": 4.5,
+        "due": "2026-07-05T09:00:00.000000+00:00",
+        "last_review": "2026-07-02T09:00:00.000000+00:00",
+        "history": [
+          {
+            "rating": 3,
+            "at": "2026-07-02T09:00:00.000000+00:00",
+            "iv": 3
+          }
+        ]
+      }
+    },
+    "8 - expanding-double-brackets.md:8a: Expand (x + a)(x + b).": {
+      "file": "8 - expanding-double-brackets.md",
+      "skill": "8a: Expand (x + a)(x + b).",
+      "ticked_at": "2026-07-01T09:00:00.000000",
+      "review_stages": [
+        {
+          "due": "2026-07-02T09:00:00.000000",
+          "stage": 1
+        },
+        {
+          "due": "2026-07-04T09:00:00.000000",
+          "stage": 2
+        },
+        {
+          "due": "2026-07-08T09:00:00.000000",
+          "stage": 3
+        },
+        {
+          "due": "2026-07-15T09:00:00.000000",
+          "stage": 4
+        },
+        {
+          "due": "2026-07-31T09:00:00.000000",
+          "stage": 5
+        }
+      ],
+      "fsrs": {
+        "state": 2,
+        "stability": 3.0,
+        "difficulty": 4.5,
+        "due": "2026-07-05T09:00:00.000000+00:00",
+        "last_review": "2026-07-02T09:00:00.000000+00:00",
+        "history": [
+          {
+            "rating": 3,
+            "at": "2026-07-02T09:00:00.000000+00:00",
+            "iv": 3
+          }
+        ]
+      }
+    },
+    "8 - expanding-double-brackets.md:8b: Expand (ax + b)(cx + d).": {
+      "file": "8 - expanding-double-brackets.md",
+      "skill": "8b: Expand (ax + b)(cx + d).",
+      "ticked_at": "2026-07-01T09:00:00.000000",
+      "review_stages": [
+        {
+          "due": "2026-07-02T09:00:00.000000",
+          "stage": 1
+        },
+        {
+          "due": "2026-07-04T09:00:00.000000",
+          "stage": 2
+        },
+        {
+          "due": "2026-07-08T09:00:00.000000",
+          "stage": 3
+        },
+        {
+          "due": "2026-07-15T09:00:00.000000",
+          "stage": 4
+        },
+        {
+          "due": "2026-07-31T09:00:00.000000",
+          "stage": 5
+        }
+      ],
+      "fsrs": {
+        "state": 2,
+        "stability": 3.0,
+        "difficulty": 4.5,
+        "due": "2026-07-05T09:00:00.000000+00:00",
+        "last_review": "2026-07-02T09:00:00.000000+00:00",
+        "history": [
+          {
+            "rating": 3,
+            "at": "2026-07-02T09:00:00.000000+00:00",
+            "iv": 3
+          }
+        ]
+      }
+    },
+    "8 - expanding-double-brackets.md:8c: Expand and simplify perfect squares.": {
+      "file": "8 - expanding-double-brackets.md",
+      "skill": "8c: Expand and simplify perfect squares.",
+      "ticked_at": "2026-07-01T09:00:00.000000",
+      "review_stages": [
+        {
+          "due": "2026-07-02T09:00:00.000000",
+          "stage": 1
+        },
+        {
+          "due": "2026-07-04T09:00:00.000000",
+          "stage": 2
+        },
+        {
+          "due": "2026-07-08T09:00:00.000000",
+          "stage": 3
+        },
+        {
+          "due": "2026-07-15T09:00:00.000000",
+          "stage": 4
+        },
+        {
+          "due": "2026-07-31T09:00:00.000000",
+          "stage": 5
+        }
+      ],
+      "fsrs": {
+        "state": 2,
+        "stability": 3.0,
+        "difficulty": 4.5,
+        "due": "2026-07-05T09:00:00.000000+00:00",
+        "last_review": "2026-07-02T09:00:00.000000+00:00",
+        "history": [
+          {
+            "rating": 3,
+            "at": "2026-07-02T09:00:00.000000+00:00",
+            "iv": 3
+          }
+        ]
+      }
+    },
+    "9 - factorising-common-factor.md:9a: Factorise with a numeric common factor.": {
+      "file": "9 - factorising-common-factor.md",
+      "skill": "9a: Factorise with a numeric common factor.",
+      "ticked_at": "2026-07-01T09:00:00.000000",
+      "review_stages": [
+        {
+          "due": "2026-07-02T09:00:00.000000",
+          "stage": 1
+        },
+        {
+          "due": "2026-07-04T09:00:00.000000",
+          "stage": 2
+        },
+        {
+          "due": "2026-07-08T09:00:00.000000",
+          "stage": 3
+        },
+        {
+          "due": "2026-07-15T09:00:00.000000",
+          "stage": 4
+        },
+        {
+          "due": "2026-07-31T09:00:00.000000",
+          "stage": 5
+        }
+      ],
+      "fsrs": {
+        "state": 2,
+        "stability": 3.0,
+        "difficulty": 4.5,
+        "due": "2026-07-05T09:00:00.000000+00:00",
+        "last_review": "2026-07-02T09:00:00.000000+00:00",
+        "history": [
+          {
+            "rating": 3,
+            "at": "2026-07-02T09:00:00.000000+00:00",
+            "iv": 3
+          }
+        ]
+      }
+    },
+    "10 - solving-equations-with-brackets.md:10a: Solve a(x + b) = c by expanding.": {
+      "file": "10 - solving-equations-with-brackets.md",
+      "skill": "10a: Solve a(x + b) = c by expanding.",
+      "ticked_at": "2026-07-01T09:00:00.000000",
+      "review_stages": [
+        {
+          "due": "2026-07-02T09:00:00.000000",
+          "stage": 1
+        },
+        {
+          "due": "2026-07-04T09:00:00.000000",
+          "stage": 2
+        },
+        {
+          "due": "2026-07-08T09:00:00.000000",
+          "stage": 3
+        },
+        {
+          "due": "2026-07-15T09:00:00.000000",
+          "stage": 4
+        },
+        {
+          "due": "2026-07-31T09:00:00.000000",
+          "stage": 5
+        }
+      ],
+      "fsrs": {
+        "state": 2,
+        "stability": 3.0,
+        "difficulty": 4.5,
+        "due": "2026-07-05T09:00:00.000000+00:00",
+        "last_review": "2026-07-02T09:00:00.000000+00:00",
+        "history": [
+          {
+            "rating": 3,
+            "at": "2026-07-02T09:00:00.000000+00:00",
+            "iv": 3
+          }
+        ]
+      }
+    },
+    "11 - factorising-quadratics.md:11a: Factorise x^2 + bx + c.": {
+      "file": "11 - factorising-quadratics.md",
+      "skill": "11a: Factorise x^2 + bx + c.",
+      "ticked_at": "2026-07-01T09:00:00.000000",
+      "review_stages": [
+        {
+          "due": "2026-07-02T09:00:00.000000",
+          "stage": 1
+        },
+        {
+          "due": "2026-07-04T09:00:00.000000",
+          "stage": 2
+        },
+        {
+          "due": "2026-07-08T09:00:00.000000",
+          "stage": 3
+        },
+        {
+          "due": "2026-07-15T09:00:00.000000",
+          "stage": 4
+        },
+        {
+          "due": "2026-07-31T09:00:00.000000",
+          "stage": 5
+        }
+      ],
+      "fsrs": {
+        "state": 2,
+        "stability": 3.0,
+        "difficulty": 4.5,
+        "due": "2026-07-05T09:00:00.000000+00:00",
+        "last_review": "2026-07-02T09:00:00.000000+00:00",
+        "history": [
+          {
+            "rating": 3,
+            "at": "2026-07-02T09:00:00.000000+00:00",
+            "iv": 3
+          }
+        ]
+      }
+    }
+  },
+  "mastery_changes": [],
+  "last_fire_apply": null
+}

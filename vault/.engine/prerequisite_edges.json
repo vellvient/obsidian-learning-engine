@@ -1,0 +1,98 @@
+[
+  {
+    "from": 1,
+    "to": 3,
+    "reason": "must evaluate before simplifying"
+  },
+  {
+    "from": 2,
+    "to": 3,
+    "reason": "negative coefficients appear in simplification"
+  },
+  {
+    "from": 3,
+    "to": 4,
+    "reason": "expanding produces terms that must be simplified"
+  },
+  {
+    "from": 3,
+    "to": 5,
+    "reason": "collecting terms is simplification"
+  },
+  {
+    "from": 2,
+    "to": 6,
+    "reason": "negative solutions arise immediately"
+  },
+  {
+    "from": 6,
+    "to": 7,
+    "reason": "two-step extends one-step inverses"
+  },
+  {
+    "from": 4,
+    "to": 8,
+    "reason": "double brackets reuse single-bracket expansion"
+  },
+  {
+    "from": 5,
+    "to": 8,
+    "reason": "expanded products must be collected"
+  },
+  {
+    "from": 4,
+    "to": 9,
+    "reason": "factorising is expansion in reverse"
+  },
+  {
+    "from": 4,
+    "to": 10,
+    "reason": "brackets must be expanded to solve"
+  },
+  {
+    "from": 7,
+    "to": 10,
+    "reason": "reduces to a two-step equation after expanding"
+  },
+  {
+    "from": 8,
+    "to": 11,
+    "reason": "factorising reverses double-bracket expansion"
+  },
+  {
+    "from": 9,
+    "to": 11,
+    "reason": "common-factor thinking precedes quadratic factorising"
+  },
+  {
+    "from": 10,
+    "to": 12,
+    "reason": "solving skills carry over to quadratics"
+  },
+  {
+    "from": 11,
+    "to": 12,
+    "reason": "must factorise before applying the zero product rule"
+  },
+  {
+    "from": 7,
+    "to": 13,
+    "reason": "inequalities solve like equations with a flip rule"
+  },
+  {
+    "from": 12,
+    "to": 14,
+    "reason": "quadratic inequality needs the roots first"
+  },
+  {
+    "from": 13,
+    "to": 14,
+    "reason": "region reasoning extends linear inequality skills",
+    "type": "SOFT"
+  },
+  {
+    "from": 11,
+    "to": 15,
+    "reason": "completing the square is the fallback when factorising fails"
+  }
+]

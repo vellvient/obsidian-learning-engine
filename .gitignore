@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+vault/.obsidian/workspace*
+vault/.obsidian/cache*
+vault/papers/figures/
+vault/papers/renders/
+vault/papers/booklets/
+vault/papers/extracted/
+vault/papers/question_bank.json
