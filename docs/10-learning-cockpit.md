@@ -41,6 +41,13 @@ target; misses are retried after two intervening questions. Empty timed sessions
 are discarded. Session summaries count correct, partial, wrong and skipped
 questions consistently, and interrupted sessions reopen directly in Study.
 
+Finishing a non-empty session performs a safe visual refresh: checkbox-derived
+mastery tags are synchronized and the Flow Zone, Review Grader, and SRS Tracker
+notes are regenerated. Existing Obsidian color rules then update the graph.
+The refresh never rewrites `graph.json` and does not apply FIRe; a failed
+refresh does not roll back the saved session and can be retried with
+`python evening.py`.
+
 The reference test suite covers idempotency, target/support separation, causal
 evidence thresholds, repair/retest/return, ranked queues, session recovery,
 timed scoring and legacy empty-set filtering.

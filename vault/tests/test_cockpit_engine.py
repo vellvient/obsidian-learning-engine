@@ -205,6 +205,30 @@ class CockpitEngineTests(unittest.TestCase):
         self.assertEqual(result["score_pct"], 50.0)
         self.assertEqual(len(engine.load_state()["timed_sets"]), 1)
 
+    def test_finish_refreshes_obsidian_visuals_without_graph_or_fire(self):
+        session = engine.start_session("guided", "9709", 30)
+        engine.record_attempt({"attempt_id": "visual", "id": "9709_q1", "node": 667,
+                               "grade": "correct", "session_id": session["id"]})
+        refresh = {
+            "ok": True, "mastery_changes": 1,
+            "updated": ["exercise mastery tags and graph colours"],
+            "errors": [], "graph_json_untouched": True, "fire_untouched": True,
+        }
+        with patch.object(engine, "refresh_obsidian_visuals", return_value=refresh) as mocked:
+            result = engine.finish_session()
+        mocked.assert_called_once_with()
+        self.assertEqual(result["visual_sync"], refresh)
+        state = engine.load_state()
+        self.assertTrue(state["last_visual_sync"]["ok"])
+        self.assertEqual(state["sessions"][-1]["visual_sync"], refresh)
+
+    def test_empty_session_does_not_refresh_obsidian_visuals(self):
+        engine.start_session("guided", "9709", 30)
+        with patch.object(engine, "refresh_obsidian_visuals") as mocked:
+            result = engine.finish_session()
+        self.assertEqual(result["status"], "discarded")
+        mocked.assert_not_called()
+
     def test_session_cursor_advances_and_remediation_can_pass(self):
         session = engine.start_session("guided", "9709", 90)
         engine.record_attempt({"attempt_id": "cursor", "id": "9709_q1", "node": 667,

@@ -120,6 +120,11 @@ a capped learning block and fresh retest where possible. Stable presentation
 ids make double-clicks idempotent, empty timed sets are discarded, and active
 sessions reopen directly in Study.
 
+Finishing a non-empty session synchronizes checkbox-derived mastery tags and
+regenerates the Flow Zone, Review Grader, and SRS Tracker. This updates graph
+colours and dashboard notes without rewriting `graph.json` or applying FIRe.
+Failures leave the study session saved and fall back to `python evening.py`.
+
 ## Skills available to agents
 
 - `.claude/skills/knowledge-graph/` — full graph-building methodology + validation gate

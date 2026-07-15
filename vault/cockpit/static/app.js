@@ -7,6 +7,7 @@ let diagnosticTarget = null;
 let questionStarted = 0;
 let timerHandle = null;
 let sessionStarted = 0;
+let finishingSession = false;
 let submitting = false;
 let currentAttemptId = null;
 
@@ -262,12 +263,27 @@ async function gradeQuestion(grade) {
 $("#errorNote").addEventListener("keydown", (event) => { if (event.key === "Enter") gradeQuestion($("#errorFields").dataset.grade); });
 $("#skipQuestion").onclick = () => gradeQuestion("skip");
 $("#finishSession").onclick = async () => {
-  const result = await post("/api/session/finish", {});
-  clearInterval(timerHandle);
-  $("#session").hidden = true;
-  $("#sessionEmpty").hidden = false;
-  toast(result.status === "discarded" ? "Empty session discarded — progress unchanged" : `Session complete: ${result.correct || 0}/${result.questions_seen || 0}`);
-  await boot();
+  if (finishingSession) return;
+  finishingSession = true;
+  const button = $("#finishSession");
+  button.disabled = true;
+  button.textContent = "Syncing Obsidian…";
+  try {
+    const result = await post("/api/session/finish", {});
+    clearInterval(timerHandle);
+    $("#session").hidden = true;
+    $("#sessionEmpty").hidden = false;
+    if (result.status === "discarded") toast("Empty session discarded — progress unchanged");
+    else if (result.visual_sync?.ok) toast(`Session complete: ${result.correct || 0}/${result.questions_seen || 0} · Obsidian refreshed`);
+    else toast("Session saved, but Obsidian refresh needs retry (run python evening.py)");
+    await boot();
+  } catch (error) {
+    toast(error.message);
+  } finally {
+    finishingSession = false;
+    button.disabled = false;
+    button.textContent = "Finish";
+  }
 };
 
 async function loadNodes() {

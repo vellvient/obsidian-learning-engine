@@ -40,6 +40,7 @@ DEMO_BANK_PATH = VAULT / "papers" / "demo_question_bank.json"
 TMUA_BANK_PATH = VAULT / "papers" / "tmua" / "question_bank.json"
 RENDERS = VAULT / "papers" / "renders"
 TMUA_RENDERS = VAULT / "papers" / "tmua" / "renders"
+VISUAL_REFRESH_TIMEOUT = 120
 
 MASTERY_RANK = {"not-started": 0, "attempted": 1, "familiar": 2,
                 "proficient": 3, "mastered": 4}
@@ -705,6 +706,56 @@ def complete_subskill(node_id: int, subskill_id: str, done: bool) -> dict:
     return {"node": node_id, "subskill": subskill_id, "done": done}
 
 
+def refresh_obsidian_visuals() -> dict:
+    """Refresh generated Obsidian views without mutating graph.json or FIRe."""
+    diagnostic_script = ("mathacademy_diagnostic.py"
+                         if (VAULT / "mathacademy_diagnostic.py").exists()
+                         else "flow_diagnostic.py")
+    commands = [
+        ("mastery_and_flow", [sys.executable, diagnostic_script, "--markdown"]),
+        ("srs_tracker", [sys.executable, "srs_fsrs.py", "--tracker"]),
+    ]
+    outputs = {}
+    errors = []
+    started = time.monotonic()
+    creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
+    for label, command in commands:
+        script = VAULT / command[1]
+        if not script.exists():
+            errors.append(f"{label}: missing {script.name}")
+            continue
+        try:
+            completed = subprocess.run(
+                command, cwd=VAULT, capture_output=True, text=True,
+                encoding="utf-8", errors="replace", timeout=VISUAL_REFRESH_TIMEOUT,
+                check=False, creationflags=creationflags,
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            errors.append(f"{label}: {exc}")
+            continue
+        output = "\n".join(part.strip() for part in (completed.stdout, completed.stderr) if part.strip())
+        outputs[label] = output[-2000:]
+        if completed.returncode != 0:
+            errors.append(f"{label}: exited {completed.returncode}")
+    mastery_changes = 0
+    match = re.search(r"Synced\s+(\d+)\s+mastery tags", outputs.get("mastery_and_flow", ""), re.I)
+    if match:
+        mastery_changes = int(match.group(1))
+    return {
+        "ok": not errors,
+        "mastery_changes": mastery_changes,
+        "updated": [
+            "exercise mastery tags and graph colours",
+            "00 - Flow Zone Diagnostic.md", "00 - Review Grader.md",
+            "00 - SRS Review Tracker.md",
+        ] if not errors else [],
+        "errors": errors,
+        "duration_seconds": round(time.monotonic() - started, 2),
+        "graph_json_untouched": True,
+        "fire_untouched": True,
+    }
+
+
 def start_session(kind: str = "guided", course: str = "", minutes: int = 150) -> dict:
     if kind not in ("guided", "diagnostic", "timed"):
         raise ValueError("unknown session kind")
@@ -848,6 +899,20 @@ def finish_session() -> dict:
             session["discarded_reason"] = "No questions were graded."
         state["active_session"] = None
         save_state(state)
+    if session.get("status") == "completed":
+        visual_sync = refresh_obsidian_visuals()
+        session["visual_sync"] = visual_sync
+        with state_lock():
+            state = load_state()
+            for saved in reversed(state.get("sessions", [])):
+                if saved.get("id") == session.get("id"):
+                    saved["visual_sync"] = visual_sync
+                    break
+            state["last_visual_sync"] = {
+                "completed_at": dt.datetime.now().astimezone().isoformat(),
+                **visual_sync,
+            }
+            save_state(state)
     return session
 
 

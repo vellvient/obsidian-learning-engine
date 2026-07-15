@@ -30,4 +30,9 @@ target. Missed targets reappear after two intervening questions.
 
 Use **Skip** only when you intentionally do not want an assessment. Finish at
 the planned boundary. Empty timed or diagnostic sessions are discarded and
-never count as 0%. Reopening the browser resumes the active Study screen.
+never count as 0%. A non-empty finish also synchronizes mastery tags and
+refreshes the Flow Zone, Review Grader, and SRS Tracker notes, so Obsidian's
+graph colours and dashboards reflect the session. It deliberately leaves
+`graph.json` and FIRe untouched. If refresh warns, the session remains saved;
+run `python evening.py` as the fallback. Reopening the browser resumes the
+active Study screen.
