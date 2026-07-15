@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "purpose": "Optional reviewable SOFT support relationships used by causal diagnosis without changing the gating DAG.",
+  "edges": []
+}

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Learning Cockpit</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/cockpit-extra.css">
+  <script defer src="/app.js"></script>
+</head>
+<body>
+  <header>
+    <div><span class="eyebrow">LOCAL LEARNING ENGINE</span><h1 id="cockpitTitle">Learning Cockpit</h1></div>
+    <div id="deadline" class="deadline"></div>
+  </header>
+  <nav>
+    <button data-view="today" class="active">Today</button>
+    <button data-view="study">Study</button>
+    <button data-view="courses">Courses</button>
+    <button data-view="progress">Progress</button>
+    <button data-view="settings">Settings</button>
+  </nav>
+  <main>
+    <section id="today" class="view active">
+      <div id="metrics" class="metrics"></div>
+      <div class="grid two">
+        <article><h2>Start a session</h2><p class="muted">Review → learn → official practice → retry.</p>
+          <div class="actions"><button class="primary" data-start="guided">Guided session</button><button data-start="diagnostic">Diagnostic</button><button data-start="timed">Timed set</button></div>
+        </article>
+        <article><h2>Due retrieval</h2><div id="due"></div></article>
+      </div>
+      <div class="grid two"><article><h2>Causal remediation</h2><div id="remediation"></div></article><article><h2>Ready to learn</h2><div id="learn"></div></article></div>
+    </section>
+    <section id="study" class="view">
+      <div id="sessionEmpty" class="empty"><h2>No active session</h2><p>Start a guided, diagnostic or timed session from Today.</p></div>
+      <div id="session" hidden>
+        <div class="sessionbar"><div><span id="sessionKind" class="pill"></span><strong id="sessionPhase"></strong></div><div><span id="timer">00:00</span><button id="finishSession">Finish</button></div></div>
+        <article id="reviewCard" hidden><h2>Retrieval review</h2><p id="reviewPrompt"></p><div class="actions"><button data-rating="1">1 Again</button><button data-rating="2">2 Hard</button><button data-rating="3">3 Good</button><button data-rating="4">4 Easy</button></div></article>
+        <article id="questionCard" hidden>
+          <div class="questionHead"><div><span id="questionMeta" class="pill"></span><h2 id="questionTitle"></h2></div><button id="skipQuestion">Skip</button></div>
+          <div id="questionImages" class="paper"></div><button id="reveal" class="primary wide">Reveal answer <kbd>Space</kbd></button>
+          <div id="answer" hidden><h3>Answer</h3><div id="answerTex" class="answerTex"></div><div id="markschemeImages" class="paper"></div></div>
+          <div id="gradePanel" hidden><div class="grade"><button data-grade="wrong">W Wrong</button><button data-grade="partial">P Partial</button><button data-grade="correct">C Correct</button></div>
+            <div id="errorFields" hidden><select id="errorType"><option value="unknown">Error type…</option><option value="slip">Slip</option><option value="procedural">Procedural</option><option value="concept">Concept</option><option value="prerequisite">Prerequisite</option><option value="strategy">Strategy blank</option><option value="misread">Misread</option></select><input id="errorNote" placeholder="One line: what went wrong?"></div>
+          </div>
+        </article>
+        <div id="causalResult"></div>
+      </div>
+    </section>
+    <section id="courses" class="view"><div class="filters"><input id="nodeSearch" placeholder="Search node, topic or domain"><select id="layerFilter"><option value="">All layers</option><option value="target">Target</option><option value="support">Support</option><option value="enrichment">Enrichment</option></select><select id="courseFilter"><option value="">All courses</option></select></div><div id="nodeList"></div></section>
+    <section id="progress" class="view"><div id="progressContent"></div></section>
+    <section id="settings" class="view"><article><h2>Planner settings</h2><label>Deadline<input id="settingDeadline" type="date"></label><label>Weekly study hours<input id="settingHours" type="number" min="1" max="80"></label><label>Default session minutes<input id="settingMinutes" type="number" min="15" max="360"></label><fieldset><legend>Active courses</legend><div id="courseSettings"></div></fieldset><div id="routeSettings"></div><button id="saveSettings" class="primary">Save settings</button></article></section>
+  </main>
+  <div id="toast"></div>
+</body>
+</html>

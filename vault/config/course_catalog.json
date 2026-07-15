@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "title": "Algebra Learning Cockpit",
+  "deadline": "2027-12-31",
+  "weekly_hours": 10,
+  "default_courses": ["demo"],
+  "profiles": {
+    "demo": {
+      "label": "Algebra Basics Demo",
+      "question_code": "demo",
+      "target_inclusions": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      "target_exclusions": []
+    }
+  },
+  "mastery_gate": {
+    "target_proficient_pct": 100,
+    "target_mastered_pct": 95,
+    "timed_average_pct": 85,
+    "domain_floor_pct": 75,
+    "proficient_delay_days": 3,
+    "mastered_delay_days": 7,
+    "error_clear_days": 14
+  }
+}

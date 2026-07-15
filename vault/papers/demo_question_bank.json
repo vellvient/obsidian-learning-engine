@@ -1,0 +1,8 @@
+[
+  {"id":"demo_q1","code":"demo","component":"algebra","qnum":1,"marks":1,"question":"Evaluate 7 - 12.","final_answers":["-5"],"markscheme_points":["B1: -5"],"topic_node_ids":[2],"difficulty":"easy","has_figure":false},
+  {"id":"demo_q2","code":"demo","component":"algebra","qnum":2,"marks":2,"question":"Simplify 3x + 5x - 2.","final_answers":["8x - 2"],"markscheme_points":["M1: collect the x terms","A1: 8x - 2"],"topic_node_ids":[5],"difficulty":"easy","has_figure":false},
+  {"id":"demo_q3","code":"demo","component":"algebra","qnum":3,"marks":2,"question":"Solve 3x + 4 = 19.","final_answers":["x = 5"],"markscheme_points":["M1: isolate 3x","A1: x = 5"],"topic_node_ids":[7],"difficulty":"easy","has_figure":false},
+  {"id":"demo_q4","code":"demo","component":"algebra","qnum":4,"marks":2,"question":"Expand (x + 3)(x - 2).","final_answers":["x^2 + x - 6"],"markscheme_points":["M1: distribute both terms","A1: x^2 + x - 6"],"topic_node_ids":[8],"difficulty":"medium","has_figure":false},
+  {"id":"demo_q5","code":"demo","component":"algebra","qnum":5,"marks":3,"question":"Solve x^2 - 5x + 6 = 0 by factorising.","final_answers":["x = 2 or x = 3"],"markscheme_points":["M1: (x-2)(x-3)=0","A1: x=2","A1: x=3"],"topic_node_ids":[11,12],"difficulty":"medium","has_figure":false},
+  {"id":"demo_q6","code":"demo","component":"algebra","qnum":6,"marks":3,"question":"Write x^2 + 6x + 11 in completed-square form.","final_answers":["(x+3)^2 + 2"],"markscheme_points":["M1: halve the x coefficient","M1: balance the constant","A1: (x+3)^2+2"],"topic_node_ids":[15],"difficulty":"medium","has_figure":false}
+]

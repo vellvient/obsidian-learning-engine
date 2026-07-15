@@ -35,6 +35,7 @@ python scripts/sprint_status.py | scripts/srs-backlog.py
 python scripts/unlock_priority.py --frontier --top 20
 python scripts/verify_engine.py        # full engine self-test
 python micro_trainer/train.py --list
+python cockpit_app.py                   # localhost GUI over the same engine/state
 ```
 
 | Note | Role |
@@ -101,6 +102,15 @@ marker block in the note; `study_today.py` marks such picks with `p`. Serve
 interactively with `python quiz.py` (flow-zone/due selection, self-grades wired to
 FSRS, misses to the error log). Bank/renders/booklets are gitignored (copyrighted
 source material stays local).
+
+## Local Learning Cockpit
+
+`cockpit_app.py` and `cockpit_engine.py` provide a dependency-free localhost UI.
+Course targets drive coverage; HARD/SOFT ancestors remain eligible as support
+skills. `config/causal_bridges.json` can add reviewable diagnostic relationships
+without changing the canonical gating DAG. Personal GUI state lives in
+`papers/cockpit_state.json` and must remain gitignored. See
+`LEARNING_COCKPIT_WALKTHROUGH.md`.
 
 ## Skills available to agents
 

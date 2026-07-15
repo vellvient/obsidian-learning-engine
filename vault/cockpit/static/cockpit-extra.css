@@ -1,0 +1,8 @@
+.subskills {
+  grid-column: 2 / 4;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.subskills summary { cursor: pointer; color: var(--muted); }
+.subskills label { font-weight: 400; margin: 8px 0; }
+.subskills input { width: auto; margin-right: 7px; }

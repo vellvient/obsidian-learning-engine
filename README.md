@@ -29,6 +29,9 @@ human or AI agent — can replicate it for any subject.
 7. **Course overlays** — map several syllabuses or admission tests onto one canonical
    graph, so shared skills keep one mastery/FSRS state while course-specific skills
    extend the DAG without duplication.
+8. **Local Learning Cockpit** — a keyboard-first localhost GUI for deadline planning,
+   guided review/practice, timed sets, subskill updates, and explainable causal
+   remediation of off-syllabus prerequisite gaps.
 
 ## Quickstart (5 minutes)
 
@@ -38,13 +41,14 @@ cd obsidian-learning-engine/vault
 python morning.py        # ranked study plan from the demo data
 python study_today.py    # the flow-zone x unlock-leverage ranker on its own
 python srs_fsrs.py --due # what FSRS says is due
+python cockpit_app.py     # open the private local GUI
 ```
 
 Open the `vault/` folder in Obsidian (install the **Dataview** community plugin when
 prompted) and press `Ctrl+G` for the colored graph. The vault ships with a 15-note
 "Algebra Basics" demo — real edges, real SRS state — so every script runs out of the box.
 
-**The core engine is pure Python standard library.** No pip installs, no accounts,
+**The core engine and cockpit are pure Python standard library.** No pip installs, no accounts,
 no cloud. (Only the optional past-paper pipeline needs `pip install pymupdf`.)
 
 To build your own subject, see [GETTING_STARTED.md](GETTING_STARTED.md).
@@ -74,6 +78,9 @@ docs/            the full handbook (architecture → build pipeline → engine �
 vault/           the template vault — open this in Obsidian; scripts live inside it
 automation/      optional hourly SRS watcher + scheduler setup
 ```
+
+The cockpit walkthrough is at
+[`vault/LEARNING_COCKPIT_WALKTHROUGH.md`](vault/LEARNING_COCKPIT_WALKTHROUGH.md).
 
 Start with `docs/01-architecture.md`, then use
 [`docs/09-course-overlays-and-learning-guide.md`](docs/09-course-overlays-and-learning-guide.md)

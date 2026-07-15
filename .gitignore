@@ -7,3 +7,6 @@ vault/papers/renders/
 vault/papers/booklets/
 vault/papers/extracted/
 vault/papers/question_bank.json
+vault/papers/cockpit_state.json
+vault/papers/quiz_log.json
+vault/.obsidian/.cockpit-state.lock

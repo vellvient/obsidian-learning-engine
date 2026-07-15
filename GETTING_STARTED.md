@@ -92,3 +92,10 @@ repo still works standalone for languages, vocabulary, and other flat domains).
 - Optional hourly automation: `automation/README.md`.
 - Read `docs/07-pitfalls.md` **before** your first bulk edit — it is the accumulated
   scar tissue of the reference build and will save you hours.
+## Optional: use the local GUI
+
+From the `vault/` directory, run `python cockpit_app.py`. The included demo course
+and original demo question bank make the Today, Study, Courses, Progress and
+Settings views usable immediately. Edit `config/course_catalog.json` to define
+your own course targets, route profiles and deadline. The course catalogue defines
+destinations; graph ancestors stay available for causal support recommendations.
