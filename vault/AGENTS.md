@@ -112,6 +112,14 @@ without changing the canonical gating DAG. Personal GUI state lives in
 `papers/cockpit_state.json` and must remain gitignored. See
 `LEARNING_COCKPIT_WALKTHROUGH.md`.
 
+Guided sessions queue a capped FSRS review floor and then questions from the
+ranked prerequisite-ready Today plan. Wrong/partial answers require a classified
+one-line cause. A vague first concept failure pauses on the target; named or
+repeated prerequisite evidence launches a diagnostic. Confirmed gaps pause for
+a capped learning block and fresh retest where possible. Stable presentation
+ids make double-clicks idempotent, empty timed sets are discarded, and active
+sessions reopen directly in Study.
+
 ## Skills available to agents
 
 - `.claude/skills/knowledge-graph/` — full graph-building methodology + validation gate

@@ -27,6 +27,24 @@ are useful for diagnosis but should not gate the canonical flow-zone DAG. For
 example, a numeracy skill can support a physics calculation without becoming a
 formal physics-course coverage target.
 
+## Verified operating loop
+
+Guided study serves up to 15 due FSRS reviews, then questions associated with
+the ranked prerequisite-ready plan. Each wrong or partial answer needs an error
+type and one useful sentence. A vague first concept failure produces a short
+target-learning pause, not an arbitrary ancestor. Named intermediate-step
+evidence, explicit prerequisite evidence, or repetition can launch a diagnostic.
+
+If the diagnostic fails, the learner receives a 10–20 minute repair pause and
+then fresh support questions where available. Passing returns to the original
+target; misses are retried after two intervening questions. Empty timed sessions
+are discarded. Session summaries count correct, partial, wrong and skipped
+questions consistently, and interrupted sessions reopen directly in Study.
+
+The reference test suite covers idempotency, target/support separation, causal
+evidence thresholds, repair/retest/return, ranked queues, session recovery,
+timed scoring and legacy empty-set filtering.
+
 ## Local/private state
 
 Do not publish `papers/cockpit_state.json`, question or answer renders, quiz

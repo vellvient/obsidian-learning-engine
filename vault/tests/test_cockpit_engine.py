@@ -64,9 +64,15 @@ class CockpitEngineTests(unittest.TestCase):
                   self.root/"papers/tmua/renders"]
         self.patches = [patch.object(engine, n, v) for n, v in zip(names, values)]
         for p in self.patches: p.start()
+        self.due_patch = patch.object(engine, "due_reviews", return_value=[])
+        self.due_mock = self.due_patch.start()
+        self.run_patch = patch.object(engine.subprocess, "run")
+        self.run_patch.start()
         self.write("papers/cockpit_state.json", engine.default_state())
 
     def tearDown(self):
+        self.run_patch.stop()
+        self.due_patch.stop()
         for p in reversed(self.patches): p.stop()
         self.tmp.cleanup()
 
@@ -87,6 +93,24 @@ class CockpitEngineTests(unittest.TestCase):
         state["attempts"] = [{"node": 667, "grade": "wrong", "error_type": "slip", "note": "sign"}]
         engine.save_state(state)
         self.assertIsNone(engine.causal_recommendation(667))
+
+    def test_one_vague_concept_failure_stays_on_target(self):
+        state = engine.load_state()
+        state["attempts"] = [{
+            "node": 667, "grade": "wrong", "error_type": "concept",
+            "note": "I do not know how to begin.",
+        }]
+        engine.save_state(state)
+        self.assertIsNone(engine.causal_recommendation(667))
+
+    def test_one_named_prerequisite_failure_can_trigger_diagnostic(self):
+        state = engine.load_state()
+        state["attempts"] = [{
+            "node": 667, "grade": "wrong", "error_type": "concept",
+            "note": "I cannot simplify the surd in the denominator.",
+        }]
+        engine.save_state(state)
+        self.assertEqual(engine.causal_recommendation(667)["support"], 334)
 
     def test_repeated_surd_errors_recommend_support_node(self):
         state = engine.load_state()
@@ -119,12 +143,67 @@ class CockpitEngineTests(unittest.TestCase):
         self.assertEqual(first["id"], second["id"])
         self.assertEqual(second["kind"], "guided")
 
+    def test_guided_session_uses_ranked_queue_and_review_floor(self):
+        self.due_mock.return_value = [
+            {"key": "review-a", "node": 667, "label": "A"},
+            {"key": "review-b", "node": 667, "label": "B"},
+        ]
+        session = engine.start_session("guided", "9709", 90)
+        self.assertEqual(session["review_keys"], ["review-a", "review-b"])
+        self.assertEqual(session["question_ids"][0], "9709_q1")
+        self.assertEqual(session["phase"], "review")
+
     def test_duplicate_attempt_is_idempotent(self):
         payload = {"attempt_id": "same", "id": "9709_q1", "node": 667, "grade": "skip"}
         engine.record_attempt(payload)
         result = engine.record_attempt(payload)
         self.assertTrue(result["duplicate"])
         self.assertEqual(len(engine.load_state()["attempts"]), 1)
+
+    def test_wrong_attempt_requires_classification_and_note(self):
+        payload = {"attempt_id": "bad", "id": "9709_q1", "node": 667,
+                   "grade": "wrong", "diagnostic_for": 999}
+        with self.assertRaises(ValueError):
+            engine.record_attempt(payload)
+        payload["error_type"] = "concept"
+        with self.assertRaises(ValueError):
+            engine.record_attempt(payload)
+        payload["note"] = "I do not know how to divide complex numbers."
+        engine.record_attempt(payload)
+        self.assertEqual(len(engine.load_state()["errors"]), 1)
+
+    def test_empty_timed_session_is_discarded(self):
+        engine.start_session("timed", "9709", 30)
+        result = engine.finish_session()
+        state = engine.load_state()
+        self.assertEqual(result["status"], "discarded")
+        self.assertEqual(state["timed_sets"], [])
+        self.assertEqual(state["sessions"], [])
+
+    def test_legacy_empty_timed_set_is_ignored_by_forecast(self):
+        state = engine.load_state()
+        state["timed_sets"] = [
+            {"completed": True, "attempted": 0, "score_pct": 0},
+            {"completed": True, "questions_seen": 2, "attempted": 2, "score_pct": 80},
+        ]
+        engine.save_state(state)
+        self.assertEqual(engine.progress_snapshot()["timed_rolling_pct"], 80.0)
+
+    def test_session_summary_counts_attempts_partials_and_skips(self):
+        session = engine.start_session("timed", "9709", 30)
+        common = {"session_id": session["id"], "diagnostic_for": 999, "node": 667}
+        engine.record_attempt({**common, "attempt_id": "c", "id": "9709_q1", "grade": "correct"})
+        engine.record_attempt({**common, "attempt_id": "p", "id": "9709_surd", "grade": "partial",
+                               "error_type": "procedural", "note": "I could not finish the simplification."})
+        engine.record_attempt({**common, "attempt_id": "s", "id": "9709_s2", "grade": "skip"})
+        result = engine.finish_session()
+        self.assertEqual(result["questions_seen"], 3)
+        self.assertEqual(result["attempted"], 2)
+        self.assertEqual(result["correct"], 1)
+        self.assertEqual(result["partial"], 1)
+        self.assertEqual(result["skipped"], 1)
+        self.assertEqual(result["score_pct"], 50.0)
+        self.assertEqual(len(engine.load_state()["timed_sets"]), 1)
 
     def test_session_cursor_advances_and_remediation_can_pass(self):
         session = engine.start_session("guided", "9709", 90)
@@ -144,6 +223,37 @@ class CockpitEngineTests(unittest.TestCase):
                                         "diagnostic_for": 667})
         self.assertEqual(result["remediation"]["status"], "passed")
         self.assertTrue(engine.load_state()["errors"][0]["resolved"])
+
+    def test_failed_diagnostic_pauses_for_learning_then_retests(self):
+        session = engine.start_session("guided", "9709", 90)
+        state = engine.load_state()
+        state["attempts"].extend([
+            {"node": 667, "grade": "wrong", "error_type": "procedural", "note": "surd"},
+            {"node": 667, "grade": "partial", "error_type": "prerequisite", "note": "surd"},
+        ])
+        engine.save_state(state)
+        session = engine.start_remediation(667)
+        failed = engine.record_attempt({
+            "attempt_id": "diag-fail", "id": "9709_surd", "node": 334,
+            "grade": "wrong", "error_type": "concept", "note": "I cannot simplify this surd.",
+            "session_id": session["id"], "diagnostic_for": 667,
+        })
+        self.assertEqual(failed["remediation"]["status"], "repair")
+        resumed = engine.resume_remediation()
+        self.assertEqual(resumed["remediation"]["status"], "testing")
+        self.assertEqual(resumed["remediation"]["round"], 2)
+        passed = engine.record_attempt({
+            "attempt_id": "diag-pass", "id": "9709_surd", "node": 334,
+            "grade": "correct", "session_id": session["id"], "diagnostic_for": 667,
+        })
+        self.assertEqual(passed["remediation"]["status"], "passed")
+        target_miss = engine.record_attempt({
+            "attempt_id": "target-retry", "id": "9709_q1", "node": 667,
+            "grade": "partial", "error_type": "procedural", "note": "The final simplification is still wrong.",
+            "session_id": session["id"],
+        })
+        self.assertIsNone(target_miss["causal"])
+        self.assertEqual(engine.load_state()["active_session"]["remediation"]["status"], "passed")
 
 
 if __name__ == "__main__":

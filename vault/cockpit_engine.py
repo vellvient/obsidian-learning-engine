@@ -118,7 +118,7 @@ def default_state() -> dict:
         "version": 1,
         "settings": settings,
         "attempts": [], "errors": [], "timed_sets": [],
-        "diagnostics": [], "active_session": None,
+        "diagnostics": [], "sessions": [], "active_session": None,
     }
 
 
@@ -303,7 +303,11 @@ def progress_snapshot() -> dict:
         domain[nodes[nid]["domain"]].append(nid)
     domain_scores = {name: round(100 * sum(MASTERY_RANK.get(statuses[n], 0) >= 3 for n in ids) / len(ids), 1)
                      for name, ids in domain.items() if ids}
-    timed = [float(x.get("score_pct", 0)) for x in state["timed_sets"] if x.get("completed")]
+    timed = [
+        float(x.get("score_pct", 0))
+        for x in state["timed_sets"]
+        if x.get("completed") and int(x.get("questions_seen", x.get("attempted", 0)) or 0) > 0
+    ]
     rolling = round(sum(timed[-3:]) / len(timed[-3:]), 1) if timed else 0.0
     deadline = dt.date.fromisoformat(state["settings"]["deadline"])
     days = max((deadline - dt.date.today()).days, 0)
@@ -368,15 +372,33 @@ def causal_recommendation(target: int) -> dict | None:
     if not candidates:
         return None
     text = " ".join(str(a.get("note", "")) + " " + str(a.get("failed_subskill", "")) for a in attempts).lower()
+    text_words = set(re.findall(r"[a-z]{4,}", text))
+    explicit_prerequisite = any(a.get("error_type") == "prerequisite" for a in attempts)
     ranked = []
     for item in candidates:
         node = nodes.get(item["node"])
         if not node:
             continue
+        words = [w for w in re.findall(r"[a-z]{4,}", node["name"].lower())
+                 if w not in {"using", "with", "from", "exam", "practice"}]
+        text_hits = sum(
+            any(w[:5] == token[:5] for token in text_words)
+            for w in words
+        )
+        related_failures = sum(
+            int(a.get("node", -1)) == node["id"] and a.get("grade") in ("wrong", "partial")
+            for a in state["attempts"]
+        )
+        # A single vague target-level concept failure means “learn this target”,
+        # not “pick an arbitrary ancestor”. One strong prerequisite signal,
+        # matching intermediate-step language, or repeated evidence is required.
+        if (len(attempts) < 2 and not explicit_prerequisite
+                and text_hits == 0 and related_failures == 0):
+            continue
         score = (4.0 if item["edge_type"] == "HARD_PREREQ" else 2.0) / item["distance"]
         score += (1 - node["progress"]["pct"]) * 3
-        words = [w for w in re.findall(r"[a-z]{4,}", node["name"].lower()) if w not in {"using", "with", "from"}]
-        score += 5 * sum(w in text for w in words)
+        score += 5 * text_hits
+        score += min(related_failures, 3) * 2
         ranked.append((score, item, node))
     if not ranked:
         return None
@@ -418,8 +440,12 @@ def decorate_question(entry: dict) -> dict:
     return result
 
 
-def diagnostic_questions(node_id: int, count: int = 3) -> list[dict]:
-    bank = [e for e in load_banks() if node_id in [int(x) for x in e.get("topic_node_ids") or []]]
+def diagnostic_questions(node_id: int, count: int = 3,
+                         exclude: set[str] | None = None) -> list[dict]:
+    exclude = exclude or set()
+    bank = [e for e in load_banks()
+            if e.get("id") not in exclude
+            and node_id in [int(x) for x in e.get("topic_node_ids") or []]]
     bank.sort(key=lambda e: ({"easy": 0, "medium": 1, "hard": 2}.get(e.get("difficulty"), 1), e.get("marks", 1)))
     return [decorate_question(e) for e in bank[:count]]
 
@@ -533,8 +559,14 @@ def record_attempt(payload: dict) -> dict:
     error_type = payload.get("error_type", "unknown")
     if error_type not in ERROR_TYPES:
         error_type = "unknown"
+    if grade in ("wrong", "partial"):
+        if error_type == "unknown":
+            raise ValueError("Choose the main error type before saving this attempt.")
+        if not str(payload.get("note", "")).strip():
+            raise ValueError("Write one short sentence describing what went wrong.")
     graded = 0
     remediation_outcome = None
+    suppress_causal = bool(payload.get("diagnostic_for"))
     with state_lock():
         state = load_state()
         attempt_id = payload.get("attempt_id") or str(uuid.uuid4())
@@ -559,6 +591,7 @@ def record_attempt(payload: dict) -> dict:
         session = state.get("active_session")
         if session and session.get("id") == payload.get("session_id"):
             session.setdefault("attempt_ids", []).append(payload["id"])
+            session.setdefault("attempt_record_ids", []).append(attempt_id)
             session.setdefault("sequence", []).append(payload["id"])
             remediation = session.get("remediation")
             if payload.get("diagnostic_for") and remediation and remediation.get("status") == "testing":
@@ -582,9 +615,13 @@ def record_attempt(payload: dict) -> dict:
                                 error["resolution"] = f"Passed support diagnostic for node {remediation['support']}"
             elif (remediation and remediation.get("status") == "passed"
                   and int(payload["node"]) == int(remediation["target"])):
-                remediation["status"] = "closed"
-                remediation["returned_at"] = attempt["ts"]
-                session["phase"] = "practice"
+                suppress_causal = True
+                if grade == "correct":
+                    remediation["status"] = "closed"
+                    remediation["returned_at"] = attempt["ts"]
+                    session["phase"] = "practice"
+                else:
+                    session["phase"] = "return-to-target"
             elif session.get("kind") == "guided":
                 queue = [x for x in session.setdefault("retry_queue", []) if x.get("id") != payload["id"]]
                 if grade in ("wrong", "partial"):
@@ -622,10 +659,11 @@ def record_attempt(payload: dict) -> dict:
                        cwd=VAULT, capture_output=True, text=True, timeout=30, check=False)
     return {"attempt": attempt, "fsrs_graded": graded,
             "remediation": remediation_outcome,
-            "causal": None if payload.get("diagnostic_for") else causal_recommendation(int(payload["node"]))}
+            "causal": (causal_recommendation(int(payload["node"]))
+                       if grade in ("wrong", "partial") and not suppress_causal else None)}
 
 
-def grade_review(key: str, rating: int) -> dict:
+def grade_review(key: str, rating: int, session_id: str | None = None) -> dict:
     if rating not in (1, 2, 3, 4):
         raise ValueError("rating must be 1, 2, 3 or 4")
     from srs_fsrs import VaultFSRS
@@ -635,6 +673,13 @@ def grade_review(key: str, rating: int) -> dict:
         if result is None:
             raise KeyError("review key not found")
         atomic_json(SRS_PATH, vault.state)
+        state = load_state()
+        session = state.get("active_session")
+        if session_id and session and session.get("id") == session_id:
+            reviewed = session.setdefault("reviewed_keys", [])
+            if key not in reviewed:
+                reviewed.append(key)
+            save_state(state)
     return {"key": key, "rating": RATING_NAMES[rating], "due": result["due"].isoformat()}
 
 
@@ -670,7 +715,25 @@ def start_session(kind: str = "guided", course: str = "", minutes: int = 150) ->
         session = {"id": str(uuid.uuid4()), "kind": kind, "course": course,
                    "minutes": int(minutes), "started_at": dt.datetime.now().astimezone().isoformat(),
                    "status": "active", "phase": "review", "question_ids": [], "attempt_ids": [],
-                   "sequence": [], "retry_queue": [], "remediation": None}
+                   "attempt_record_ids": [], "sequence": [], "retry_queue": [],
+                   "review_keys": [], "reviewed_keys": [], "remediation": None}
+        if kind == "guided":
+            plan = today_plan()
+            session["review_keys"] = [item["key"] for item in plan["due"][:15]]
+            _, by_course = course_targets(state["settings"])
+            allowed = by_course.get(course, set()) if course else None
+            for candidate in plan["learn"]:
+                node_id = int(candidate["node"])
+                if allowed is not None and node_id not in allowed:
+                    continue
+                question = next_question(course, node_id, set(session["question_ids"]))
+                if question:
+                    session["question_ids"].append(question["id"])
+            if not session["question_ids"]:
+                question = next_question(course)
+                if question:
+                    session["question_ids"].append(question["id"])
+            session["phase"] = "review" if session["review_keys"] else "learn-practice"
         if kind == "diagnostic":
             nodes = list_nodes(layer="target", course=course)
             by_domain: dict[str, list[dict]] = defaultdict(list)
@@ -708,6 +771,10 @@ def start_remediation(target: int) -> dict:
                        "status": "active", "phase": "remediation", "question_ids": [],
                        "attempt_ids": [], "sequence": [], "retry_queue": [], "remediation": None}
             state["active_session"] = session
+        prior = session.get("remediation")
+        depth = int(prior.get("depth", 0)) + 1 if prior and prior.get("target") != target else 1
+        if depth > 2:
+            raise ValueError("Prerequisite depth limit reached. Finish this repair block before diagnosing deeper.")
         question_ids = recommendation.get("diagnostic_question_ids") or []
         if not question_ids:
             raise ValueError("This support skill has no tagged diagnostic questions; open its note instead.")
@@ -718,7 +785,37 @@ def start_remediation(target: int) -> dict:
             "question_ids": question_ids[:3], "attempts": [], "status": "testing",
             "started_at": dt.datetime.now().astimezone().isoformat(),
             "estimated_minutes": recommendation["estimated_minutes"],
+            "depth": depth, "root_target": prior.get("root_target", target) if prior else target,
+            "history": [],
         }
+        save_state(state)
+    return session
+
+
+def resume_remediation() -> dict:
+    """Resume a confirmed support gap after a capped learning block."""
+    with state_lock():
+        state = load_state()
+        session = state.get("active_session")
+        remediation = session.get("remediation") if session else None
+        if not remediation or remediation.get("status") != "repair":
+            raise ValueError("There is no paused repair block to retest.")
+        used = {str(item.get("id")) for item in remediation.get("attempts", [])}
+        used.update(str(item) for item in remediation.get("question_ids", []))
+        fresh = diagnostic_questions(int(remediation["support"]), 3, used)
+        if not fresh:
+            fresh = diagnostic_questions(int(remediation["support"]), 3)
+        remediation.setdefault("history", []).append({
+            "question_ids": list(remediation.get("question_ids", [])),
+            "attempts": list(remediation.get("attempts", [])),
+            "completed_at": remediation.get("completed_at"),
+        })
+        remediation["question_ids"] = [item["id"] for item in fresh]
+        remediation["attempts"] = []
+        remediation["status"] = "testing"
+        remediation["round"] = int(remediation.get("round", 1)) + 1
+        remediation["retest_started_at"] = dt.datetime.now().astimezone().isoformat()
+        session["phase"] = "retest-support"
         save_state(state)
     return session
 
@@ -729,15 +826,26 @@ def finish_session() -> dict:
         session = state.get("active_session")
         if not session:
             return {"status": "none"}
-        attempts = [a for a in state["attempts"] if a.get("session_id") == session["id"] and a.get("grade") != "skip"]
+        attempts = [a for a in state["attempts"] if a.get("session_id") == session["id"]]
+        assessed = [a for a in attempts if a.get("grade") != "skip"]
         correct = sum(a.get("grade") == "correct" for a in attempts)
-        score = round(100 * correct / len(attempts), 1) if attempts else 0
-        session.update({"status": "completed", "completed_at": dt.datetime.now().astimezone().isoformat(),
-                        "attempted": len(attempts), "correct": correct, "score_pct": score})
-        if session["kind"] == "timed":
+        partial = sum(a.get("grade") == "partial" for a in attempts)
+        wrong = sum(a.get("grade") == "wrong" for a in attempts)
+        skipped = sum(a.get("grade") == "skip" for a in attempts)
+        score = round(100 * (correct + 0.5 * partial) / len(attempts), 1) if attempts else 0
+        status = "completed" if attempts else "discarded"
+        session.update({"status": status, "completed_at": dt.datetime.now().astimezone().isoformat(),
+                        "questions_seen": len(attempts), "attempted": len(assessed),
+                        "correct": correct, "partial": partial, "wrong": wrong,
+                        "skipped": skipped, "score_pct": score})
+        if attempts:
+            state["sessions"].append(dict(session))
+        if session["kind"] == "timed" and attempts:
             state["timed_sets"].append(dict(session, completed=True))
-        elif session["kind"] == "diagnostic":
+        elif session["kind"] == "diagnostic" and attempts:
             state["diagnostics"].append(dict(session))
+        elif not attempts:
+            session["discarded_reason"] = "No questions were graded."
         state["active_session"] = None
         save_state(state)
     return session

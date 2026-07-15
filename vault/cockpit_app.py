@@ -100,7 +100,7 @@ class Handler(BaseHTTPRequestHandler):
             if route == "/api/attempt":
                 result = engine.record_attempt(body)
             elif route == "/api/review":
-                result = engine.grade_review(body["key"], int(body["rating"]))
+                result = engine.grade_review(body["key"], int(body["rating"]), body.get("session_id"))
             elif route == "/api/subskill":
                 result = engine.complete_subskill(int(body["node"]), body["subskill"], bool(body["done"]))
             elif route == "/api/session/start":
@@ -109,6 +109,8 @@ class Handler(BaseHTTPRequestHandler):
                 result = engine.finish_session()
             elif route == "/api/remediation/start":
                 result = engine.start_remediation(int(body["target"]))
+            elif route == "/api/remediation/retest":
+                result = engine.resume_remediation()
             elif route == "/api/settings":
                 result = engine.update_settings(body)
             else:

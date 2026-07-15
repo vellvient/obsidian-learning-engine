@@ -7,6 +7,8 @@ let diagnosticTarget = null;
 let questionStarted = 0;
 let timerHandle = null;
 let sessionStarted = 0;
+let submitting = false;
+let currentAttemptId = null;
 
 async function api(path, options = {}) {
   const response = await fetch(path, {headers: {"Content-Type": "application/json"}, ...options});
@@ -38,8 +40,12 @@ async function boot() {
   $("#routeSettings").innerHTML = Object.entries(profiles).filter(([, profile]) => Object.keys(profile.routes || {}).length).map(([course, profile]) => `<label>${esc(profile.label)} route<select data-route-course="${esc(course)}">${Object.entries(profile.routes).map(([key, route]) => `<option value="${esc(key)}">${esc(route.label || key)}</option>`).join("")}</select></label>`).join("");
   renderToday(data.today);
   loadSettings(data.settings);
-  if (data.today.active_session) showSession(data.today.active_session);
-  switchView("today");
+  if (data.today.active_session) {
+    showSession(data.today.active_session);
+    switchView("study");
+  } else {
+    switchView("today");
+  }
 }
 
 function renderToday(today) {
@@ -95,7 +101,10 @@ function showSession(session) {
       if (remaining <= 0) $("#finishSession").click();
     } else $("#timer").textContent = formatTime(elapsed);
   }, 1000);
-  if (session.kind === "guided" && data.today.due.length && !session.remediation && !(session.sequence || []).length) showReview(data.today.due[0]);
+  const reviewed = new Set(session.reviewed_keys || []);
+  const pendingKey = (session.review_keys || []).find((key) => !reviewed.has(key));
+  const pendingReview = pendingKey && (data.today.due.find((item) => item.key === pendingKey) || {key: pendingKey, label: pendingKey});
+  if (session.kind === "guided" && pendingReview && !session.remediation) showReview(pendingReview);
   else loadSessionQuestion(session);
 }
 
@@ -108,9 +117,10 @@ function showReview(review) {
 
 $$('[data-rating]').forEach((button) => button.onclick = async () => {
   try {
-    await post("/api/review", {key: $("#reviewCard").dataset.key, rating: Number(button.dataset.rating)});
+    const session = await api("/api/session");
+    await post("/api/review", {key: $("#reviewCard").dataset.key, rating: Number(button.dataset.rating), session_id: session.id});
     $("#reviewCard").hidden = true;
-    loadSessionQuestion(await api("/api/session"));
+    showSession(await api("/api/session"));
   } catch (error) { toast(error.message); }
 });
 
@@ -131,8 +141,8 @@ async function loadSessionQuestion(session) {
     question = await api(`/api/question?node=${remediation.target}`);
     nodeHint = remediation.target;
   } else if (remediation?.status === "repair") {
-    question = await api(`/api/question?node=${remediation.support}`);
-    nodeHint = remediation.support;
+    showRepairPause(remediation);
+    return;
   } else {
     const retry = (session.retry_queue || []).find((x) => x.after <= (session.sequence || []).length);
     if (retry) question = await api(`/api/question?id=${encodeURIComponent(retry.id)}`);
@@ -151,6 +161,9 @@ function renderQuestion(question, session, nodeOverride = null) {
   currentQuestion = question;
   currentNode = Number(nodeOverride || question.topic_node_ids?.[0]);
   questionStarted = Date.now();
+  currentAttemptId = crypto.randomUUID();
+  submitting = false;
+  setAttemptControls(false);
   $("#questionCard").hidden = false;
   $("#reviewCard").hidden = true;
   $("#answer").hidden = true;
@@ -167,6 +180,33 @@ function renderQuestion(question, session, nodeOverride = null) {
   $("#errorType").value = "unknown";
 }
 
+function setAttemptControls(disabled) {
+  $$('[data-grade]').forEach((button) => { button.disabled = disabled; });
+  $("#skipQuestion").disabled = disabled;
+}
+
+function focusNode(node) {
+  $("#nodeSearch").value = String(node);
+  switchView("courses");
+  loadNodes();
+}
+
+function showRepairPause(remediation) {
+  $("#questionCard").hidden = true;
+  $("#causalResult").innerHTML = `<article><span class="pill">Confirmed support gap</span><h2>${esc(remediation.support_name)}</h2><p>Spend 10–20 focused minutes learning only this gap. Mark subskills you can now demonstrate, then retest before returning to ${esc(remediation.target_name)}.</p><div class="actions"><button id="viewRepairNode">View skill checklist</button><button class="primary" id="retestSupport">Retest support skill</button></div></article>`;
+  $("#viewRepairNode").onclick = () => focusNode(remediation.support);
+  $("#retestSupport").onclick = async () => {
+    try { showSession(await post("/api/remediation/retest", {})); }
+    catch (error) { toast(error.message); }
+  };
+}
+
+function showLearningPause(attempt) {
+  $("#causalResult").innerHTML = `<article><span class="pill">Learning pause</span><h2>Repair target #${attempt.node}</h2><p>Spend 10–20 minutes learning the specific missing idea, mark only subskills you can demonstrate, then continue. The question is already queued for a delayed retry.</p><div class="actions"><button id="viewTargetNode">View skill checklist</button><button class="primary" id="continueSession">Continue session</button></div></article>`;
+  $("#viewTargetNode").onclick = () => focusNode(attempt.node);
+  $("#continueSession").onclick = async () => loadSessionQuestion(await api("/api/session"));
+}
+
 $("#reveal").onclick = () => {
   $("#answer").hidden = false;
   $("#gradePanel").hidden = false;
@@ -175,34 +215,48 @@ $("#reveal").onclick = () => {
 $$('[data-grade]').forEach((button) => button.onclick = () => gradeQuestion(button.dataset.grade));
 
 async function gradeQuestion(grade) {
-  if (!currentQuestion) return;
+  if (!currentQuestion || submitting) return;
   if ((grade === "wrong" || grade === "partial") && $("#errorFields").hidden) {
     $("#errorFields").hidden = false;
     $("#errorNote").focus();
     $("#errorFields").dataset.grade = grade;
     return;
   }
+  if (grade === "wrong" || grade === "partial") {
+    if ($("#errorType").value === "unknown") { toast("Choose the main error type"); $("#errorType").focus(); return; }
+    if (!$("#errorNote").value.trim()) { toast("Write one short sentence about what went wrong"); $("#errorNote").focus(); return; }
+  }
+  submitting = true;
+  setAttemptControls(true);
   try {
     const session = await api("/api/session");
     const result = await post("/api/attempt", {
       id: currentQuestion.id, node: currentNode, course: currentQuestion.course || currentQuestion.code,
       grade, error_type: $("#errorType").value, note: $("#errorNote").value,
       duration_seconds: Math.round((Date.now() - questionStarted) / 1000),
-      session_id: session.id, attempt_id: crypto.randomUUID(), diagnostic_for: diagnosticTarget,
+      session_id: session.id, attempt_id: currentAttemptId, diagnostic_for: diagnosticTarget,
     });
+    if (result.duplicate) { toast("Attempt already saved"); setTimeout(async () => loadSessionQuestion(await api("/api/session")), 250); return; }
     if (result.causal) {
       $("#causalResult").innerHTML = `<article><span class="pill">Causal check</span><h2>${esc(result.causal.support_name)}</h2><p>${esc(result.causal.reason)}</p><p><strong>${result.causal.estimated_minutes} minutes.</strong> ${esc(result.causal.return_condition)}</p><button class="primary" id="startRemediation">Test ${esc(result.causal.support_name)}</button></article>`;
       $("#startRemediation").onclick = async () => showSession(await post("/api/remediation/start", {target: result.causal.target}));
       return;
     }
     if (result.remediation) {
-      toast(result.remediation.status === "passed" ? "Support diagnostic passed — return to the target" : "Support gap confirmed — begin a short repair block");
-      setTimeout(async () => loadSessionQuestion(await api("/api/session")), 700);
+      if (result.remediation.status === "passed") {
+        toast("Support diagnostic passed — return to the target");
+        setTimeout(async () => loadSessionQuestion(await api("/api/session")), 500);
+      } else {
+        toast("Support gap confirmed — begin a short repair block");
+        showRepairPause(result.remediation);
+      }
+    } else if ((grade === "wrong" || grade === "partial") && ["concept", "prerequisite", "strategy"].includes($("#errorType").value)) {
+      showLearningPause(result.attempt);
     } else {
       toast(result.fsrs_graded ? `${result.fsrs_graded} FSRS card(s) updated` : "Attempt saved");
       setTimeout(async () => loadSessionQuestion(await api("/api/session")), 300);
     }
-  } catch (error) { toast(error.message); }
+  } catch (error) { submitting = false; setAttemptControls(false); toast(error.message); }
 }
 
 $("#errorNote").addEventListener("keydown", (event) => { if (event.key === "Enter") gradeQuestion($("#errorFields").dataset.grade); });
@@ -212,7 +266,7 @@ $("#finishSession").onclick = async () => {
   clearInterval(timerHandle);
   $("#session").hidden = true;
   $("#sessionEmpty").hidden = false;
-  toast(`Session complete: ${result.correct || 0}/${result.attempted || 0}`);
+  toast(result.status === "discarded" ? "Empty session discarded — progress unchanged" : `Session complete: ${result.correct || 0}/${result.questions_seen || 0}`);
   await boot();
 };
 
