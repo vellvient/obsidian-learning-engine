@@ -40,8 +40,8 @@
           <div class="questionHead"><div><span id="questionMeta" class="pill"></span><h2 id="questionTitle"></h2></div><button id="skipQuestion">Skip</button></div>
           <div id="questionImages" class="paper"></div><button id="reveal" class="primary wide">Reveal answer <kbd>Space</kbd></button>
           <div id="answer" hidden><h3>Answer</h3><div id="answerTex" class="answerTex"></div><div id="markschemeImages" class="paper"></div></div>
-          <div id="gradePanel" hidden><div class="grade"><button data-grade="wrong">W Wrong</button><button data-grade="partial">P Partial</button><button data-grade="correct">C Correct</button></div>
-            <div id="errorFields" hidden><select id="errorType"><option value="unknown">Error type…</option><option value="slip">Slip</option><option value="procedural">Procedural</option><option value="concept">Concept</option><option value="prerequisite">Prerequisite</option><option value="strategy">Strategy blank</option><option value="misread">Misread</option></select><input id="errorNote" placeholder="One line: what went wrong?"></div>
+          <div id="gradePanel" hidden><div id="rubricFields" hidden></div><div class="grade"><button data-grade="wrong">W Wrong</button><button data-grade="partial">P Partial</button><button data-grade="correct">C Correct</button></div>
+            <div id="errorFields" hidden><select id="errorType"><option value="unknown">Error type…</option></select><input id="errorNote" placeholder="One line: what went wrong?"></div>
           </div>
         </article>
         <div id="causalResult"></div>

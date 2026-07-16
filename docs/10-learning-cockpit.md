@@ -52,6 +52,15 @@ The reference test suite covers idempotency, target/support separation, causal
 evidence thresholds, repair/retest/return, ranked queues, session recovery,
 timed scoring and legacy empty-set filtering.
 
+## Subject adapters
+
+The same cockpit can serve cumulative STEM subjects, practical disciplines, and
+essay subjects. `config/course_catalog.json` supplies the subject vocabulary:
+course targets and routes, question-bank/render paths, learner-facing error
+types, which errors constitute causal evidence, and optional rubrics selected by
+component type or assessment tags. Rubric percentages provide timed evidence
+without replacing source mark schemes. See `11-subject-adapters.md`.
+
 ## Local/private state
 
 Do not publish `papers/cockpit_state.json`, question or answer renders, quiz

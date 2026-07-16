@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Localhost-only web server for the Unified Math Learning Cockpit."""
+"""Localhost-only web server for a config-driven Learning Cockpit."""
 from __future__ import annotations
 
 import argparse
@@ -69,7 +69,7 @@ class Handler(BaseHTTPRequestHandler):
                 state = engine.load_state()
                 self.json_response({"today": engine.today_plan(), "settings": state["settings"],
                                     "catalog": engine.catalog_summary(),
-                                    "error_types": sorted(engine.ERROR_TYPES)})
+                                    "error_types": engine.error_type_definitions()})
             elif route == "/api/today":
                 self.json_response(engine.today_plan())
             elif route == "/api/nodes":
@@ -142,7 +142,8 @@ def main():
         return
     server = ThreadingHTTPServer((host, args.port), Handler)
     server.quiet = args.quiet
-    print(f"Unified Math Learning Cockpit: {url}")
+    title = engine.catalog_summary().get("title", "Learning Cockpit")
+    print(f"{title}: {url}")
     if not args.no_browser:
         webbrowser.open(url)
     try:

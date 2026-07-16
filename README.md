@@ -31,7 +31,9 @@ human or AI agent — can replicate it for any subject.
    extend the DAG without duplication.
 8. **Local Learning Cockpit** — a keyboard-first localhost GUI for deadline planning,
    guided review/practice, timed sets, subskill updates, and explainable causal
-   remediation of off-syllabus prerequisite gaps.
+   remediation of off-syllabus prerequisite gaps. Its config-driven adapters
+   support subject-specific error taxonomies and multidimensional rubrics for
+   practical work, essays, data responses, and other non-binary assessments.
 
 ## Quickstart (5 minutes)
 
@@ -81,6 +83,8 @@ automation/      optional hourly SRS watcher + scheduler setup
 
 The cockpit walkthrough is at
 [`vault/LEARNING_COCKPIT_WALKTHROUGH.md`](vault/LEARNING_COCKPIT_WALKTHROUGH.md).
+To install the same cockpit across different subject vaults, see
+[`docs/11-subject-adapters.md`](docs/11-subject-adapters.md).
 
 Start with `docs/01-architecture.md`, then use
 [`docs/09-course-overlays-and-learning-guide.md`](docs/09-course-overlays-and-learning-guide.md)

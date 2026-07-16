@@ -40,6 +40,7 @@ class CockpitEngineTests(unittest.TestCase):
                 "9231": {"question_code": "9231", "component_prefixes": ["1", "2", "3", "4"]}},
             "mastery_gate": {"mastered_delay_days": 7, "timed_average_pct": 85, "domain_floor_pct": 75}
         })
+        self.write("vault_config.json", {"subject": "Synthetic Mathematics"})
         self.write("config/tmua_course_map.json", {"mappings": {}, "new_nodes": {}})
         self.write(".hermes/prerequisite_edges_enriched.json", [
             {"from": 334, "to": 667, "type": "HARD_PREREQ", "reason": "Surd simplification is needed when simplifying complex-number moduli."}
@@ -54,10 +55,10 @@ class CockpitEngineTests(unittest.TestCase):
         self.write("papers/quiz_log.json", [])
         self.write(".obsidian/srs_state.json", {"reviews": {}})
         self.write("config/causal_bridges.json", {"edges": []})
-        names = ["VAULT", "CATALOG_PATH", "EDGE_PATH", "CAUSAL_BRIDGES_PATH", "SRS_PATH", "STATE_PATH", "QUIZ_LOG_PATH",
+        names = ["VAULT", "CATALOG_PATH", "VAULT_CONFIG_PATH", "EDGE_PATH", "CAUSAL_BRIDGES_PATH", "SRS_PATH", "STATE_PATH", "QUIZ_LOG_PATH",
                  "ERROR_LOG_PATH", "LOCK_PATH", "ANSWER_TEX_PATH", "QUESTION_BANK_PATH", "TMUA_BANK_PATH",
                  "RENDERS", "TMUA_RENDERS"]
-        values = [self.root, self.root/"config/course_catalog.json", self.root/".hermes/prerequisite_edges_enriched.json", self.root/"config/causal_bridges.json",
+        values = [self.root, self.root/"config/course_catalog.json", self.root/"vault_config.json", self.root/".hermes/prerequisite_edges_enriched.json", self.root/"config/causal_bridges.json",
                   self.root/".obsidian/srs_state.json", self.root/"papers/cockpit_state.json", self.root/"papers/quiz_log.json",
                   self.root/"00 - Math Error Log.md", self.root/".obsidian/.cockpit-state.lock", self.root/"papers/answers_tex.json",
                   self.root/"papers/question_bank.json", self.root/"papers/tmua/question_bank.json", self.root/"papers/renders",
@@ -87,6 +88,38 @@ class CockpitEngineTests(unittest.TestCase):
         self.assertEqual(layers[334], "support")
         self.assertEqual(layers[900], "enrichment")
         self.assertNotIn(334, courses["target"])
+
+    def test_curriculum_target_source_is_subject_neutral(self):
+        self.write(".engine/curriculum.json", [{"num": 334}, {"num": 667}])
+        catalog = json.loads((self.root / "config/course_catalog.json").read_text())
+        catalog["profiles"]["9709"] = {
+            "target_source": "curriculum", "curriculum_path": ".engine/curriculum.json",
+            "target_min": 600, "target_max": 700, "question_code": "9709",
+        }
+        self.write("config/course_catalog.json", catalog)
+        target, _ = engine.course_targets(engine.load_state()["settings"])
+        self.assertIn(667, target)
+        self.assertNotIn(334, target)
+
+    def test_subject_rubric_is_required_and_scores_timed_work(self):
+        catalog = json.loads((self.root / "config/course_catalog.json").read_text())
+        catalog["assessment"] = {
+            "error_types": [{"id": "analysis_chain", "label": "Analysis chain", "causal": True}],
+            "rubrics": [{"id": "essay", "component_prefixes": ["3"], "required": True,
+                         "dimensions": [{"id": "knowledge", "max": 2}, {"id": "analysis", "max": 3}]}],
+        }
+        self.write("config/course_catalog.json", catalog)
+        question = engine.get_question("9709_q1")
+        self.assertEqual(question["assessment_rubric"]["id"], "essay")
+        session = engine.start_session("timed", "9709", 30)
+        base = {"attempt_id": "rubric", "id": "9709_q1", "node": 667,
+                "grade": "partial", "error_type": "analysis_chain", "note": "causal chain stopped",
+                "session_id": session["id"], "diagnostic_for": 999}
+        with self.assertRaises(ValueError):
+            engine.record_attempt(base)
+        engine.record_attempt({**base, "rubric": {"knowledge": 2, "analysis": 1}})
+        result = engine.finish_session()
+        self.assertEqual(result["score_pct"], 60.0)
 
     def test_one_slip_does_not_trigger_remediation(self):
         state = engine.load_state()

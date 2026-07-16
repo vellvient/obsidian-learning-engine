@@ -125,6 +125,11 @@ regenerates the Flow Zone, Review Grader, and SRS Tracker. This updates graph
 colours and dashboard notes without rewriting `graph.json` or applying FIRe.
 Failures leave the study session saved and fall back to `python evening.py`.
 
+The cockpit is subject-neutral. Keep shared Python/HTML/JS identical across
+vaults and declare course targets, bank/render paths, error types, causal flags,
+and optional multidimensional rubrics in `config/course_catalog.json`. Use the
+toolkit's installer and validator instead of creating subject-specific forks.
+
 ## Skills available to agents
 
 - `.claude/skills/knowledge-graph/` — full graph-building methodology + validation gate

@@ -28,12 +28,15 @@ function toast(message) {
 }
 const metric = (label, value) => `<div class="metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`;
 const item = (title, meta = "") => `<div class="item"><strong>${esc(title)}</strong>${meta ? `<div class="meta">${esc(meta)}</div>` : ""}</div>`;
+const isCausalError = (key) => (data?.catalog?.assessment?.error_types || []).some((row) => (row.id || row) === key && row.causal);
 
 async function boot() {
   data = await api("/api/bootstrap");
   const profiles = data.catalog?.profiles || {};
+  const errorTypes = data.catalog?.assessment?.error_types || data.error_types || [];
   document.title = data.catalog?.title || "Learning Cockpit";
   $("#cockpitTitle").textContent = data.catalog?.title || "Learning Cockpit";
+  $("#errorType").innerHTML = `<option value="unknown">Error type…</option>` + errorTypes.map((row) => `<option value="${esc(row.id || row)}">${esc(row.label || row)}</option>`).join("");
   const currentCourse = $("#courseFilter").value;
   $("#courseFilter").innerHTML = `<option value="">All courses</option>` + Object.entries(profiles).map(([key, profile]) => `<option value="${esc(key)}">${esc(profile.label)}</option>`).join("");
   if (profiles[currentCourse]) $("#courseFilter").value = currentCourse;
@@ -169,6 +172,8 @@ function renderQuestion(question, session, nodeOverride = null) {
   $("#reviewCard").hidden = true;
   $("#answer").hidden = true;
   $("#gradePanel").hidden = true;
+  $("#rubricFields").hidden = true;
+  $("#rubricFields").innerHTML = "";
   $("#errorFields").hidden = true;
   $("#causalResult").innerHTML = "";
   $("#questionMeta").textContent = `${question.code || question.course} · ${question.difficulty || "?"} · ${question.marks || 1} mark(s) · node ${currentNode}`;
@@ -176,6 +181,10 @@ function renderQuestion(question, session, nodeOverride = null) {
   $("#questionImages").innerHTML = question.question_images?.length ? question.question_images.map((path) => `<img src="${media(path)}" alt="Question">`).join("") : `<pre>${esc(question.question || "Question image missing")}</pre>`;
   $("#answerTex").textContent = (question.answers_tex || []).join("  ·  ");
   $("#markschemeImages").innerHTML = (question.markscheme_images || []).map((path) => `<img src="${media(path)}" alt="Mark scheme">`).join("");
+  const rubric = question.assessment_rubric;
+  if (rubric?.dimensions?.length) {
+    $("#rubricFields").innerHTML = `<h3>${esc(rubric.label || "Assessment rubric")}</h3><div class="rubricGrid">` + rubric.dimensions.map((row) => `<label>${esc(row.label || row.id)}<select data-rubric="${esc(row.id)}"><option value="">Score…</option>${Array.from({length: Number(row.max || 1) + 1}, (_, value) => `<option value="${value}">${value}/${Number(row.max || 1)}</option>`).join("")}</select><small>${esc(row.description || "")}</small></label>`).join("") + `</div>`;
+  }
   $("#reveal").hidden = false;
   $("#errorNote").value = "";
   $("#errorType").value = "unknown";
@@ -211,6 +220,7 @@ function showLearningPause(attempt) {
 $("#reveal").onclick = () => {
   $("#answer").hidden = false;
   $("#gradePanel").hidden = false;
+  if (currentQuestion?.assessment_rubric?.dimensions?.length) $("#rubricFields").hidden = false;
   $("#reveal").hidden = true;
 };
 $$('[data-grade]').forEach((button) => button.onclick = () => gradeQuestion(button.dataset.grade));
@@ -227,6 +237,14 @@ async function gradeQuestion(grade) {
     if ($("#errorType").value === "unknown") { toast("Choose the main error type"); $("#errorType").focus(); return; }
     if (!$("#errorNote").value.trim()) { toast("Write one short sentence about what went wrong"); $("#errorNote").focus(); return; }
   }
+  const rubric = {};
+  const rubricInputs = $$('[data-rubric]');
+  if (grade !== "skip" && currentQuestion?.assessment_rubric?.required && rubricInputs.some((input) => input.value === "")) {
+    toast("Complete every rubric dimension before grading");
+    rubricInputs.find((input) => input.value === "")?.focus();
+    return;
+  }
+  rubricInputs.forEach((input) => { if (input.value !== "") rubric[input.dataset.rubric] = Number(input.value); });
   submitting = true;
   setAttemptControls(true);
   try {
@@ -234,6 +252,7 @@ async function gradeQuestion(grade) {
     const result = await post("/api/attempt", {
       id: currentQuestion.id, node: currentNode, course: currentQuestion.course || currentQuestion.code,
       grade, error_type: $("#errorType").value, note: $("#errorNote").value,
+      rubric,
       duration_seconds: Math.round((Date.now() - questionStarted) / 1000),
       session_id: session.id, attempt_id: currentAttemptId, diagnostic_for: diagnosticTarget,
     });
@@ -251,7 +270,7 @@ async function gradeQuestion(grade) {
         toast("Support gap confirmed — begin a short repair block");
         showRepairPause(result.remediation);
       }
-    } else if ((grade === "wrong" || grade === "partial") && ["concept", "prerequisite", "strategy"].includes($("#errorType").value)) {
+    } else if ((grade === "wrong" || grade === "partial") && isCausalError($("#errorType").value)) {
       showLearningPause(result.attempt);
     } else {
       toast(result.fsrs_graded ? `${result.fsrs_graded} FSRS card(s) updated` : "Attempt saved");

@@ -24,6 +24,7 @@ from typing import Any
 
 VAULT = Path(__file__).resolve().parent
 CATALOG_PATH = VAULT / "config" / "course_catalog.json"
+VAULT_CONFIG_PATH = VAULT / "vault_config.json"
 EDGE_PATH = (VAULT / ".engine" / "prerequisite_edges.json"
              if (VAULT / ".engine" / "prerequisite_edges.json").exists()
              else VAULT / ".hermes" / "prerequisite_edges_enriched.json")
@@ -45,8 +46,14 @@ VISUAL_REFRESH_TIMEOUT = 120
 MASTERY_RANK = {"not-started": 0, "attempted": 1, "familiar": 2,
                 "proficient": 3, "mastered": 4}
 RATING_NAMES = {1: "Again", 2: "Hard", 3: "Good", 4: "Easy"}
-ERROR_TYPES = {"slip", "procedural", "concept", "prerequisite",
-               "strategy", "misread", "unknown"}
+DEFAULT_ERROR_TYPES = [
+    {"id": "slip", "label": "Slip", "causal": False},
+    {"id": "procedural", "label": "Procedural", "causal": True},
+    {"id": "concept", "label": "Concept", "causal": True},
+    {"id": "prerequisite", "label": "Prerequisite", "causal": True},
+    {"id": "strategy", "label": "Strategy blank", "causal": False},
+    {"id": "misread", "label": "Misread", "causal": False},
+]
 ID_RE = re.compile(r"^(.*)_q(\d+)$")
 
 
@@ -139,6 +146,36 @@ def save_state(state: dict) -> None:
     atomic_json(STATE_PATH, state)
 
 
+def catalog() -> dict:
+    return read_json(CATALOG_PATH, {})
+
+
+def assessment_config() -> dict:
+    return catalog().get("assessment", {})
+
+
+def error_type_definitions() -> list[dict]:
+    rows = assessment_config().get("error_types") or DEFAULT_ERROR_TYPES
+    clean = []
+    for row in rows:
+        if isinstance(row, str):
+            row = {"id": row, "label": row.replace("_", " ").title()}
+        key = str(row.get("id", "")).strip().lower()
+        if key and key != "unknown":
+            clean.append({"id": key, "label": str(row.get("label") or key),
+                          "causal": bool(row.get("causal", False))})
+    return clean
+
+
+def error_types() -> set[str]:
+    return {row["id"] for row in error_type_definitions()} | {"unknown"}
+
+
+def causal_error_types() -> set[str]:
+    configured = {row["id"] for row in error_type_definitions() if row.get("causal")}
+    return configured or {"concept", "prerequisite", "procedural"}
+
+
 def parse_list(raw: str) -> list[int]:
     return [int(x) for x in re.findall(r"\d+", raw or "")]
 
@@ -183,8 +220,32 @@ def load_edges() -> list[dict]:
 
 
 def load_banks() -> list[dict]:
-    primary = QUESTION_BANK_PATH if QUESTION_BANK_PATH.exists() else DEMO_BANK_PATH
-    entries = read_json(primary, []) + read_json(TMUA_BANK_PATH, [])
+    vault_config = read_json(VAULT_CONFIG_PATH, {})
+    minimum_confidence = float(vault_config.get("minimum_tag_confidence", 0) or 0)
+    configured = catalog().get("question_banks", [])
+    if not configured:
+        primary = QUESTION_BANK_PATH if QUESTION_BANK_PATH.exists() else DEMO_BANK_PATH
+        configured = [str(primary.relative_to(VAULT))]
+        if TMUA_BANK_PATH.exists():
+            configured.append(str(TMUA_BANK_PATH.relative_to(VAULT)))
+    entries = []
+    for item in configured:
+        spec = {"path": item} if isinstance(item, str) else dict(item)
+        path = VAULT / str(spec.get("path", ""))
+        rows = read_json(path, [])
+        if isinstance(rows, dict):
+            rows = rows.get("questions") or rows.get("entries") or []
+        for source in rows:
+            entry = dict(source)
+            if entry.get("out_of_syllabus"):
+                continue
+            confidence = entry.get("confidence")
+            if confidence is not None and float(confidence or 0) < minimum_confidence:
+                continue
+            entry["_render_root"] = spec.get("render_root", "papers/renders")
+            entry["_question_pattern"] = spec.get("question_pattern")
+            entry["_markscheme_pattern"] = spec.get("markscheme_pattern")
+            entries.append(entry)
     for entry in entries:
         entry["course"] = (entry.get("course") or entry.get("code") or "CIE").lower()
     return entries
@@ -200,12 +261,26 @@ def course_targets(settings: dict, banks: list[dict] | None = None) -> tuple[set
         route_name = settings.get(f"route_{course}")
         route = profile.get("routes", {}).get(route_name, {}) if route_name else {}
         prefixes = set(route.get("component_prefixes", profile.get("component_prefixes", [])))
-        code = str(profile.get("question_code", course)).lower()
-        for entry in banks:
-            entry_code = str(entry.get("code") or entry.get("course") or "").lower()
-            component = str(entry.get("component") or "")
-            if entry_code == code and (not prefixes or component[:1] in prefixes):
-                by_course[course].update(int(x) for x in entry.get("topic_node_ids") or [])
+        codes = profile.get("question_codes") or [profile.get("question_code", course)]
+        codes = {str(code).lower() for code in codes}
+        if profile.get("target_source") == "curriculum":
+            curriculum_path = VAULT / profile.get("curriculum_path", ".engine/curriculum.json")
+            curriculum = read_json(curriculum_path, [])
+            low = profile.get("target_min")
+            high = profile.get("target_max")
+            for node in curriculum:
+                try:
+                    node_id = int(node.get("num", node.get("id")))
+                except (TypeError, ValueError):
+                    continue
+                if (low is None or node_id >= int(low)) and (high is None or node_id <= int(high)):
+                    by_course[course].add(node_id)
+        if profile.get("target_source") != "curriculum":
+            for entry in banks:
+                entry_code = str(entry.get("code") or entry.get("course") or "").lower()
+                component = str(entry.get("component") or "")
+                if entry_code in codes and (not prefixes or component[:1] in prefixes):
+                    by_course[course].update(int(x) for x in entry.get("topic_node_ids") or [])
         map_path = profile.get("map")
         if map_path:
             overlay = read_json(VAULT / map_path, {})
@@ -218,13 +293,30 @@ def course_targets(settings: dict, banks: list[dict] | None = None) -> tuple[set
     return target, dict(by_course)
 
 
+def question_allowed_for_course(entry: dict, course: str, settings: dict) -> bool:
+    if not course or course.lower() == "all":
+        return True
+    profile = catalog().get("profiles", {}).get(course, {})
+    route_name = settings.get(f"route_{course}")
+    route = profile.get("routes", {}).get(route_name, {}) if route_name else {}
+    prefixes = set(route.get("component_prefixes", profile.get("component_prefixes", [])))
+    codes = profile.get("question_codes") or [profile.get("question_code", course)]
+    codes = {str(code).lower() for code in codes}
+    entry_code = str(entry.get("code") or entry.get("course") or "").lower()
+    component = str(entry.get("component") or "")
+    return entry_code in codes and (not prefixes or component[:1] in prefixes)
+
+
 def catalog_summary() -> dict:
-    catalog = read_json(CATALOG_PATH, {})
-    return {"title": catalog.get("title", "Learning Cockpit"),
-            "deadline": catalog.get("deadline"),
-            "mastery_gate": catalog.get("mastery_gate", {}), "profiles": {
+    data = catalog()
+    return {"title": data.get("title", "Learning Cockpit"),
+            "subject": data.get("subject", read_json(VAULT_CONFIG_PATH, {}).get("subject", "")),
+            "deadline": data.get("deadline"),
+            "mastery_gate": data.get("mastery_gate", {}),
+            "assessment": {**assessment_config(), "error_types": error_type_definitions()},
+            "profiles": {
         key: {"label": value.get("label", key), "routes": value.get("routes", {})}
-        for key, value in catalog.get("profiles", {}).items()
+        for key, value in data.get("profiles", {}).items()
     }}
 
 
@@ -366,7 +458,7 @@ def causal_recommendation(target: int) -> dict | None:
         return None
     attempts = [a for a in state["attempts"] if int(a.get("node", -1)) == target
                 and a.get("grade") in ("wrong", "partial")]
-    strong = [a for a in attempts if a.get("error_type") in ("concept", "prerequisite", "procedural")]
+    strong = [a for a in attempts if a.get("error_type") in causal_error_types()]
     if len(attempts) < 2 and not strong:
         return None
     candidates = ancestors(target, load_edges())
@@ -415,7 +507,18 @@ def causal_recommendation(target: int) -> dict | None:
     }
 
 
-def question_renders(entry_id: str, markscheme: bool = False) -> list[str]:
+def question_renders(entry_id: str, markscheme: bool = False,
+                     entry: dict | None = None) -> list[str]:
+    if entry and (entry.get("_question_pattern") or entry.get("_markscheme_pattern")):
+        root = VAULT / entry.get("_render_root", "papers/renders")
+        pattern = entry.get("_markscheme_pattern") if markscheme else entry.get("_question_pattern")
+        if pattern:
+            values = {**entry, "id": entry_id}
+            try:
+                paths = sorted(root.glob(pattern.format(**values)))
+            except (KeyError, ValueError):
+                paths = []
+            return [str(p.relative_to(VAULT)).replace("\\", "/") for p in paths]
     if entry_id.startswith("tmua_"):
         if markscheme:
             paths = sorted(TMUA_RENDERS.glob(f"{entry_id}_wa_p*.png"))
@@ -436,9 +539,33 @@ def decorate_question(entry: dict) -> dict:
     result = dict(entry)
     tex = read_json(ANSWER_TEX_PATH, {}).get(entry["id"], [])
     result["answers_tex"] = tex or entry.get("final_answers") or []
-    result["question_images"] = question_renders(entry["id"])
-    result["markscheme_images"] = question_renders(entry["id"], True)
+    result["question_images"] = question_renders(entry["id"], entry=entry)
+    result["markscheme_images"] = question_renders(entry["id"], True, entry)
+    result["assessment_rubric"] = rubric_for_question(entry)
+    for key in list(result):
+        if key.startswith("_"):
+            result.pop(key, None)
     return result
+
+
+def rubric_for_question(entry: dict) -> dict | None:
+    component_type = str(entry.get("component_type") or "").lower()
+    component = str(entry.get("component") or "")
+    tags = {str(x).lower() for x in entry.get("assessment_tags") or []}
+    for rubric in assessment_config().get("rubrics", []):
+        types = [str(x).lower() for x in rubric.get("component_types", [])]
+        prefixes = [str(x) for x in rubric.get("component_prefixes", [])]
+        required_tags = {str(x).lower() for x in rubric.get("assessment_tags", [])}
+        type_match = types and any(token in component_type for token in types)
+        prefix_match = prefixes and component[:1] in prefixes
+        tag_match = required_tags and bool(tags & required_tags)
+        if (type_match or prefix_match or tag_match
+                or (not types and not prefixes and not required_tags)):
+            return {"id": rubric.get("id", "rubric"),
+                    "label": rubric.get("label", "Assessment rubric"),
+                    "required": bool(rubric.get("required", True)),
+                    "dimensions": rubric.get("dimensions", [])}
+    return None
 
 
 def diagnostic_questions(node_id: int, count: int = 3,
@@ -544,9 +671,8 @@ def next_question(course: str = "", node: int | None = None, exclude: set[str] |
     allowed = by_course.get(course, target) if course else target
     exclude = exclude or set()
     served = {a.get("id") for a in state["attempts"]}
-    source = course.lower() if course and course.lower() != "all" else ""
     pool = [e for e in banks if e["id"] not in exclude
-            and (not source or e.get("course") == source)
+            and question_allowed_for_course(e, course, state["settings"])
             and (node is None or node in e.get("topic_node_ids", []))
             and (node is not None or any(int(x) in allowed for x in e.get("topic_node_ids") or []))]
     pool.sort(key=lambda e: (e["id"] in served, {"easy": 0, "medium": 1, "hard": 2}.get(e.get("difficulty"), 1), e["id"]))
@@ -558,8 +684,30 @@ def record_attempt(payload: dict) -> dict:
     if grade not in ("correct", "partial", "wrong", "skip"):
         raise ValueError("grade must be correct, partial, wrong or skip")
     error_type = payload.get("error_type", "unknown")
-    if error_type not in ERROR_TYPES:
+    if error_type not in error_types():
         error_type = "unknown"
+    rubric = payload.get("rubric") or {}
+    question = get_question(str(payload.get("id", "")))
+    rubric_spec = question.get("assessment_rubric") if question else None
+    rubric_pct = None
+    if grade != "skip" and rubric_spec:
+        dimensions = rubric_spec.get("dimensions", [])
+        if rubric_spec.get("required") and any(str(row.get("id")) not in rubric for row in dimensions):
+            raise ValueError("Complete every assessment-rubric dimension before grading.")
+        earned = total = 0.0
+        clean_rubric = {}
+        for row in dimensions:
+            key = str(row.get("id"))
+            maximum = float(row.get("max", 1))
+            try:
+                value = max(0.0, min(float(rubric.get(key, 0)), maximum))
+            except (TypeError, ValueError):
+                value = 0.0
+            clean_rubric[key] = value
+            earned += value
+            total += maximum
+        rubric = clean_rubric
+        rubric_pct = round(100 * earned / total, 1) if total else None
     if grade in ("wrong", "partial"):
         if error_type == "unknown":
             raise ValueError("Choose the main error type before saving this attempt.")
@@ -580,6 +728,7 @@ def record_attempt(payload: dict) -> dict:
             "note": payload.get("note", ""), "duration_seconds": int(payload.get("duration_seconds", 0)),
             "ts": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
             "session_id": payload.get("session_id"), "diagnostic_for": payload.get("diagnostic_for"),
+            "rubric": rubric, "rubric_pct": rubric_pct,
         }
         state["attempts"].append(attempt)
         if grade in ("wrong", "partial"):
@@ -610,7 +759,7 @@ def record_attempt(payload: dict) -> dict:
                         for error in state["errors"]:
                             if (int(error.get("node", -1)) == int(remediation["target"])
                                     and not error.get("resolved")
-                                    and error.get("error_type") in ("prerequisite", "procedural", "concept")):
+                                    and error.get("error_type") in causal_error_types()):
                                 error["resolved"] = True
                                 error["resolved_at"] = attempt["ts"]
                                 error["resolution"] = f"Passed support diagnostic for node {remediation['support']}"
@@ -883,7 +1032,10 @@ def finish_session() -> dict:
         partial = sum(a.get("grade") == "partial" for a in attempts)
         wrong = sum(a.get("grade") == "wrong" for a in attempts)
         skipped = sum(a.get("grade") == "skip" for a in attempts)
-        score = round(100 * (correct + 0.5 * partial) / len(attempts), 1) if attempts else 0
+        points = [((float(a["rubric_pct"]) / 100) if a.get("rubric_pct") is not None
+                   else 1.0 if a.get("grade") == "correct"
+                   else 0.5 if a.get("grade") == "partial" else 0.0) for a in attempts]
+        score = round(100 * sum(points) / len(points), 1) if points else 0
         status = "completed" if attempts else "discarded"
         session.update({"status": status, "completed_at": dt.datetime.now().astimezone().isoformat(),
                         "questions_seen": len(attempts), "attempted": len(assessed),

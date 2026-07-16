@@ -99,3 +99,7 @@ and original demo question bank make the Today, Study, Courses, Progress and
 Settings views usable immediately. Edit `config/course_catalog.json` to define
 your own course targets, route profiles and deadline. The course catalogue defines
 destinations; graph ancestors stay available for causal support recommendations.
+For a second subject vault, define its catalogue and run
+`python automation/install_cockpit.py --vault C:\path\to\vault --port 8766`.
+Subject-specific error types and assessment rubrics belong in the catalogue;
+the Python cockpit files remain shared. See `docs/11-subject-adapters.md`.

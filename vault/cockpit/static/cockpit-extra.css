@@ -6,3 +6,6 @@
 .subskills summary { cursor: pointer; color: var(--muted); }
 .subskills label { font-weight: 400; margin: 8px 0; }
 .subskills input { width: auto; margin-right: 7px; }
+.rubricGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:.75rem; margin:1rem 0; }
+.rubricGrid label { display:flex; flex-direction:column; gap:.35rem; }
+.rubricGrid small { color:var(--muted); line-height:1.25; }
