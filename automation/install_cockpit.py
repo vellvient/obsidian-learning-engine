@@ -43,7 +43,7 @@ def main() -> None:
         shutil.copy2(source, destination)
     launch = vault / args.launch_name
     launch.write_text(
-        f"@echo off\ncd /d {vault}\npython cockpit_app.py --port {args.port}\n",
+        f"@echo off\ncd /d \"{vault}\"\npython cockpit_app.py --port {args.port}\n",
         encoding="utf-8",
     )
     print(f"Installed shared cockpit in {vault}")
