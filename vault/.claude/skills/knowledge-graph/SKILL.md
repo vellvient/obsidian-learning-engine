@@ -1,7 +1,6 @@
 ---
 name: knowledge-graph
 description: Build a Math Academy-style prerequisite knowledge graph and study vault (Obsidian) for any subject — extract a curriculum into granular skill notes, mine prerequisite edges with batched AI analysis, validate the DAG, and wire up mastery tracking, FSRS spaced repetition, and FIRe implicit-review dashboards. Use when the user wants to create/extend a knowledge graph, add a new subject vault, re-mine prerequisites, or audit graph quality.
-license: MIT
 ---
 
 # Knowledge Graph Builder — Math Academy-style learning vaults
