@@ -1,9 +1,6 @@
 ---
 name: vault-maintenance
 description: Day-to-day operation of a learning-engine vault — mastery-tag sync (all 4 places), FSRS/FIRe upkeep, catch-up planning when behind schedule, index maintenance, and the known failure modes. Use when ticking sessions need processing, mastery tags look wrong, the SRS seems off, or the user asks "what should I study to catch up".
-version: 1.0.0
-license: MIT
-platforms: [windows, macos, linux]
 ---
 
 # Vault Maintenance — operating the learning engine
